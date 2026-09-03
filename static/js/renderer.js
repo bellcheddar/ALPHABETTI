@@ -363,6 +363,76 @@ export class Renderer {
     requestAnimationFrame(step);
   }
 
+  /**
+   * Turn a residue to the front AND come in close. What a click should do.
+   *
+   * flyTo only rotates; on a 250-residue protein that leaves the residue you
+   * asked about still a speck among a thousand others. This dollies to a
+   * distance set by the glyph scale rather than the structure's, so the letters
+   * are legible whatever size the protein is.
+   */
+  focusResidue(position, { milliseconds = 620 } = {}) {
+    const local = position.clone().add(this.centring.position);
+    const radius = local.length();
+    this.flyTo(position, { milliseconds });
+
+    // Close enough to read the letter, far enough to keep its neighbours around
+    // it. `radius` is how far the residue sits from the structure's centre, and
+    // the camera looks at that centre, so the gap has to clear it before any
+    // framing is added -- otherwise the camera ends up inside the protein, which
+    // is what +12 did: it put ubiquitin at 22 A and filled the screen with two
+    // letters and no context.
+    //
+    // +30 shows roughly 30 A across at this field of view: the residue, its
+    // neighbours along the chain, and enough of the fold to place it.
+    const target = Math.max(radius + 30, 32);
+    const start = this.control.distance;
+    const started = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - started) / milliseconds);
+      const eased = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+      this.control.distance = start + (target - start) * eased;
+      this.control.idleTime = 0;
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /**
+   * Ring the residue the dock is showing.
+   *
+   * Centring the camera on a residue is not the same as showing which one it
+   * is: at a distance that keeps any context there are a hundred other letters
+   * in view and nothing distinguishes the one you clicked. The marker is a thin
+   * ring that always faces the camera, so it reads as a target rather than as
+   * another piece of geometry.
+   */
+  setFocusMarker(position) {
+    if (!this.focusMarker) {
+      const geometry = new THREE.TorusGeometry(2.6, 0.13, 8, 48);
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x26f5e0, transparent: true, opacity: 0.95,
+        depthTest: false,          // never hidden behind the letter it marks
+      });
+      this.focusMarker = new THREE.Mesh(geometry, material);
+      this.focusMarker.renderOrder = 999;
+      this.centring.add(this.focusMarker);
+    }
+    if (!position) { this.focusMarker.visible = false; return; }
+    this.focusMarker.visible = true;
+    this.focusMarker.position.copy(position);
+  }
+
+  /** Set the attitude and distance directly. FOLDEROL drives its own framing. */
+  setPose(attitude, distance) {
+    if (attitude) this.control.attitude = attitude;
+    if (distance) {
+      this.control.distance = Math.min(
+        Math.max(distance, this.control.minimumDistance), this.control.maximumDistance);
+    }
+    this.control.idleTime = 0;
+  }
+
   /** Double-click, the reset button, or the 0 key: frame the whole thing again. */
   resetCamera() {
     this._flying = false;
@@ -434,6 +504,12 @@ export class Renderer {
     this._orbitState = this.isOrbiting;
     if (wasOrbiting !== this._orbitState) this._notifyRotate();
     this._applyCamera();
+
+    // The ring is a child of the tumbling subject, so cancel that rotation to
+    // keep it face-on; a torus seen edge-on is a line and marks nothing.
+    if (this.focusMarker?.visible) {
+      this.focusMarker.quaternion.copy(this.subject.quaternion).invert();
+    }
 
     // Raycasting every frame is wasteful and the tooltip does not need 120 Hz.
     // Throttled to roughly 30 Hz, as the build spec asks.

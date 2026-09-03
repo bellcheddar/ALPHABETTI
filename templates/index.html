@@ -31,23 +31,13 @@
         <b>A</b>s <b>B</b>ackbone-<b>E</b>mbedded <b>T</b>ext <b>I</b>n 3<b>D</b>
       </p>
     </div>
+    <!-- The backronyms used to live here and made the strip 90px tall. They are
+         now shown for the ACTIVE tab only, inside the viewport, top right. -->
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="gibberish" aria-selected="true">
-        GIBBERISH<span class="tab-sub ignite"><b>G</b>lyph <b>I</b>nterface for
-        <b>B</b>its, <b>E</b>ntropy and <b>R</b>esidue <b>I</b>nformation in
-        <b>S</b>tructural <b>H</b>omology</span></button>
-      <button class="tab" role="tab" data-tab="bumfluff" aria-selected="false">
-        BUMFLUFF<span class="tab-sub ignite"><b>B</b>uried/<b>U</b>nburied
-        <b>M</b>apping of <b>F</b>onts, <b>L</b>etters, <b>U</b>ncovered
-        <b>F</b>aces and <b>F</b>olds</span></button>
-      <button class="tab" role="tab" data-tab="balderdash" aria-selected="false">
-        BALDERDASH<span class="tab-sub ignite"><b>B</b>ayesian <b>A</b>mino-acid
-        <b>L</b>etter <b>D</b>isplay of <b>E</b>stimated <b>R</b>esidue
-        <b>D</b>eviations <b>A</b>nd <b>S</b>ubstitution <b>H</b>otspots</span></button>
-      <button class="tab" role="tab" data-tab="folderol" aria-selected="false">
-        FOLDEROL<span class="tab-sub ignite"><b>F</b>olding <b>O</b>f
-        <b>L</b>etters <b>D</b>isplayed <b>E</b>n <b>R</b>oute,
-        <b>O</b>rdered <b>L</b>inearly</span></button>
+      <button class="tab" role="tab" data-tab="gibberish" aria-selected="true">GIBBERISH</button>
+      <button class="tab" role="tab" data-tab="bumfluff" aria-selected="false">BUMFLUFF</button>
+      <button class="tab" role="tab" data-tab="balderdash" aria-selected="false">BALDERDASH</button>
+      <button class="tab" role="tab" data-tab="folderol" aria-selected="false">FOLDEROL</button>
     </div>
   </div>
 </div>
@@ -55,11 +45,19 @@
 <main class="app-main">
   <div class="stage">
     <div class="viewport" data-viewport>
-      <div class="overlay overlay-models">
-        {{ models.structure.name }} · {{ models.language.name }}<br>
-        <span class="no-msa">no alignment used</span>
+      <!-- (2) The active tab's backronym, in the corner it describes. -->
+      <div class="overlay overlay-expand ignite" data-expand></div>
+      <div class="overlay overlay-legend">
+        <div data-legend></div>
+        <div class="legend-models">{{ models.structure.name }} · {{ models.language.name }}
+          · <span class="no-msa">no alignment used</span></div>
       </div>
-      <div class="overlay overlay-legend" data-legend></div>
+
+      <!-- (1) Click a residue and its card docks here, and stays. -->
+      <aside class="residue-dock" data-residue-dock hidden>
+        <button class="dock-close" data-dock-close aria-label="Close">&times;</button>
+        <div class="dock-body" data-dock-body></div>
+      </aside>
       <!-- Always visible, on the canvas. The auto-rotate control used to live at
            the bottom of the scrolling side panel, below the fold, which is no
            use when a stray scroll has just paused the rotation. -->

@@ -108,6 +108,10 @@ function cache(target) {
   target.tabs = [...document.querySelectorAll('[data-tab]')];
   target.downloads = document.querySelector('[data-downloads]');
   target.rotateButton = document.querySelector('[data-rotate-toggle]');
+  target.expand = document.querySelector('[data-expand]');
+  target.dock = document.querySelector('[data-residue-dock]');
+  target.dockBody = document.querySelector('[data-dock-body]');
+  target.dockClose = document.querySelector('[data-dock-close]');
   target.resetButton = document.querySelector('[data-reset-view]');
 }
 
@@ -233,11 +237,23 @@ async function loadVariants(payload) {
 
 /* ------------------------------------------------------------------ modes */
 
+// The backronym for each tab, with the letters that spell the acronym marked.
+// Shown in the viewport's top-right corner for whichever tab is active, rather
+// than under all four tabs at once, which made the strip 90 px tall.
 const MODES = {
-  gibberish: { Class: Gibberish, label: 'GIBBERISH', sub: 'information content' },
-  bumfluff: { Class: Bumfluff, label: 'BUMFLUFF', sub: 'solvent accessibility' },
-  balderdash: { Class: Balderdash, label: 'BALDERDASH', sub: 'variant hotspots' },
-  folderol: { Class: Folderol, label: 'FOLDEROL', sub: 'flat logo to fold' },
+  gibberish: { Class: Gibberish, label: 'GIBBERISH',
+    expand: '<b>G</b>lyph <b>I</b>nterface for <b>B</b>its, <b>E</b>ntropy and '
+          + '<b>R</b>esidue <b>I</b>nformation in <b>S</b>tructural <b>H</b>omology' },
+  bumfluff: { Class: Bumfluff, label: 'BUMFLUFF',
+    expand: '<b>B</b>uried/<b>U</b>nburied <b>M</b>apping of <b>F</b>onts, '
+          + '<b>L</b>etters, <b>U</b>ncovered <b>F</b>aces and <b>F</b>olds' },
+  balderdash: { Class: Balderdash, label: 'BALDERDASH',
+    expand: '<b>B</b>ayesian <b>A</b>mino-acid <b>L</b>etter <b>D</b>isplay of '
+          + '<b>E</b>stimated <b>R</b>esidue <b>D</b>eviations <b>A</b>nd '
+          + '<b>S</b>ubstitution <b>H</b>otspots' },
+  folderol: { Class: Folderol, label: 'FOLDEROL',
+    expand: '<b>F</b>olding <b>O</b>f <b>L</b>etters <b>D</b>isplayed '
+          + '<b>E</b>n <b>R</b>oute, <b>O</b>rdered <b>L</b>inearly' },
 };
 
 function setMode(key, { force = false } = {}) {
@@ -267,6 +283,14 @@ function setMode(key, { force = false } = {}) {
 
   for (const tab of dom.tabs) {
     tab.setAttribute('aria-selected', String(tab.dataset.tab === key));
+  }
+  if (dom.expand) {
+    dom.expand.innerHTML = MODES[key].expand;
+    // Restart the ignition sweep so the new backronym lights up on arrival
+    // rather than joining the previous one's cycle midway through.
+    dom.expand.style.animation = 'none';
+    void dom.expand.offsetWidth;
+    dom.expand.style.animation = '';
   }
   buildModeControls();
   buildSharedControls();
@@ -327,13 +351,18 @@ function wireInputs() {
     dom.rotateButton.querySelector('span').textContent = on ? 'rotating' : 'paused';
     dom.rotateButton.setAttribute('aria-pressed', String(on));
   });
-  dom.resetButton?.addEventListener('click', () => state.renderer.resetCamera());
+  dom.resetButton?.addEventListener('click', () => {
+    state.renderer.resetCamera();
+    hideDock();
+  });
+  dom.dockClose?.addEventListener('click', hideDock);
 
   // Keyboard, so the two things people reach for most are one key away.
   window.addEventListener('keydown', (event) => {
     if (event.target.matches('input, textarea, select')) return;
     if (event.key === 'r' || event.key === 'R') dom.rotateButton?.click();
-    if (event.key === '0') state.renderer.resetCamera();
+    if (event.key === '0') { state.renderer.resetCamera(); hideDock(); }
+    if (event.key === 'Escape') hideDock();
   });
 
   buildSharedControls();
@@ -546,11 +575,13 @@ function renderStats(result) {
 function renderLegend() {
   const legend = state.mode.legend;
   const s = state.data.stats;
+  // Provenance ("masked marginals ...", "folded on ...") deliberately not here.
+  // It is a fact about how the numbers were made, not about what is on screen,
+  // and it was three lines of small type competing with the legend it sat under.
+  // The About page carries it in full.
   dom.legend.innerHTML =
     `<b>${legend.text}</b><br>${legend.detail}`
-    + `<br>secondary structure via ${s.ss_method}`
-    + (state.data.provenance?.length
-        ? `<br>${state.data.provenance.join(' · ')}` : '');
+    + `<br>secondary structure via ${s.ss_method}`;
 }
 
 function renderDownloads(payload) {
@@ -576,11 +607,55 @@ function hoverResidue(index, fromCanvas) {
   if (index === null) dom.tooltip.hide();
 }
 
+/**
+ * Clicking a residue docks its card and zooms to it.
+ *
+ * The hover tooltip still follows the pointer and still disappears; this is the
+ * other half of the gesture. A tooltip you have to keep the mouse still to read
+ * is no use once you want to compare it with something, so a click pins it in
+ * the corner and takes the camera there.
+ */
 function flyToResidue(index) {
   const residue = state.data?.residues[index];
   if (!residue) return;
-  state.renderer.flyTo(new THREE.Vector3().fromArray(residue.ca));
+  const at = new THREE.Vector3().fromArray(residue.ca);
+  state.renderer.focusResidue(at);
+  state.renderer.setFocusMarker(at);
   state.ruler.highlight(index);
+  showDock(residue);
+}
+
+function showDock(residue) {
+  if (!dom.dock) return;
+  state.dockedResidue = residue.i;
+  const [first, ...rest] = state.mode.tooltip(residue);
+
+  // The docked card shows the active tab's rows plus the handful that are worth
+  // seeing whatever tab you are on. Deduplicated by label, because each mode's
+  // tooltip already carries some of them -- GIBBERISH's includes pLDDT, and the
+  // card listed it twice.
+  const rows = [...rest];
+  const seen = new Set(rows.map((r) => r.key));
+  const always = [
+    { key: 'pLDDT', value: residue.plddt.toFixed(0) },
+    { key: 'relative SASA', value: residue.rsa.toFixed(3) },
+    { key: 'structure', value: { H: 'helix', E: 'strand', C: 'coil' }[residue.ss] || residue.ss },
+  ];
+  for (const row of always) if (!seen.has(row.key)) rows.push(row);
+
+  dom.dockBody.innerHTML =
+    `<div class="dock-head"><span class="dock-aa">${first.key}</span>`
+    + `<span class="dock-num">${first.value}</span></div>`
+    + rows.map((r) => `<div class="dock-row"><span>${r.key}</span><b>${r.value}</b></div>`).join('');
+  dom.dock.hidden = false;
+}
+
+function hideDock() {
+  if (!dom.dock) return;
+  dom.dock.hidden = true;
+  state.dockedResidue = null;
+  state.renderer.setFocusMarker(null);
+  state.ruler.highlight(null);
 }
 
 /* -------------------------------------------------------------------------
