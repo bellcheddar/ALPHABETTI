@@ -109,6 +109,20 @@ export class Renderer {
       element.setPointerCapture(event.pointerId);
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       lastX = event.clientX; lastY = event.clientY;
+
+      // Work out what was clicked HERE, not in the click handler.
+      //
+      // `_dragging` goes true on the next line, and the very next frame clears
+      // `_hovered` so that a drag does not pay for a raycast it cannot use. A
+      // real click holds the button for about 100 ms, which is several frames,
+      // so by the time `click` fires the hover is long gone and nothing is
+      // selected. A synthetic click with no delay slips through before any
+      // frame runs, which is how this passed its first test.
+      //
+      // Raycasting rather than reading `_hovered` also makes touch work, where
+      // there is no hover before the tap at all.
+      this._pressedResidue = this.residueAt(event.clientX, event.clientY);
+      this._pressOrigin = { x: event.clientX, y: event.clientY };
       this._dragging = true;
     });
 
@@ -162,8 +176,18 @@ export class Renderer {
       this._pointerScreen = null;
       if (this._hovered !== null) { this._hovered = null; this.onHover?.(null, null); }
     });
-    element.addEventListener('click', () => {
-      if (this._hovered !== null) this.onPick?.(this._hovered);
+    element.addEventListener('click', (event) => {
+      // Only a press that stayed put counts as a click. Without this, letting
+      // go at the end of a drag would select whatever happened to be under the
+      // pointer, which is never what the drag was for.
+      const origin = this._pressOrigin;
+      const travelled = origin
+        ? Math.hypot(event.clientX - origin.x, event.clientY - origin.y) : 0;
+      this._pressOrigin = null;
+      if (travelled > 5) return;
+      if (this._pressedResidue !== null && this._pressedResidue !== undefined) {
+        this.onPick?.(this._pressedResidue);
+      }
     });
   }
 
@@ -444,6 +468,17 @@ export class Renderer {
   setPickTargets(objects, field) {
     this._pickTargets = objects;
     this._field = field;
+  }
+
+  /** Which residue is under these client coordinates, or null. No side effects. */
+  residueAt(clientX, clientY) {
+    if (!this._pickTargets?.length) return null;
+    const rect = this.webgl.domElement.getBoundingClientRect();
+    this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const hits = this.raycaster.intersectObjects(this._pickTargets, false);
+    return hits.length ? this._field?.residueFromHit(hits[0]) : null;
   }
 
   _pick() {
