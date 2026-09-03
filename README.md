@@ -96,6 +96,20 @@ A UniProt sequence is the **precursor**, and folding it whole gives something no
 
 ![BALDERDASH mode: wild-type letters at full size with dimmer ghost letters beneath showing the residues the model would have preferred](docs/screenshots/balderdash.png)
 
+## 🎥 The camera turns nothing; the protein does
+
+Dragging vertically used to die about halfway across the viewport. The cause is in three.js OrbitControls' own arithmetic rather than anything app-specific, which is why sibling apps had it too:
+
+```js
+rotateUp( 2 * Math.PI * deltaY / element.clientHeight * rotateSpeed )
+```
+
+A full canvas height of vertical drag asks for **360°** of polar rotation, while the polar angle is clamped to **[0, π] = 180°**. Half a viewport therefore exhausts the entire permitted range and the camera pins at the pole. Measured: the polar angle stopped changing at **59%** of a vertical drag. Halving the sensitivity only moved that to 91%, because a spherical-coordinate camera *has* a pole and the clamp exists to protect its degenerate up vector.
+
+ALPHABETTI now uses `StageCamera`, taken unchanged from ButtFold (itself ported from PhoneFold's Swift). **The camera is fixed on +Z and the protein carries a quaternion**, so there is no pole to protect and it tumbles freely. Drag increments are premultiplied about the *screen* axes, which keeps "drag right turns right" true even upside down. Measured after: a full vertical drag turns 137° with zero dead steps, and dragging again the same way turns another 137°.
+
+The orbit resumes **8 seconds** after you stop, not 2.5: a view you have just set should not start sliding away while you are still looking at it.
+
 ## 🏗️ Architecture
 
 ```

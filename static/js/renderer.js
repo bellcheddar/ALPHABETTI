@@ -8,7 +8,7 @@
  */
 
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { StageCamera } from './StageCamera.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -34,7 +34,28 @@ export class Renderer {
     this.scene.fog = new THREE.Fog(VOID, 60, 220);
 
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.5, 3000);
-    this.camera.position.set(0, 0, 90);
+
+    // The subject turns; the camera does not.
+    //
+    // This is the whole fix for a vertical drag that died halfway across the
+    // viewport. A camera orbiting in spherical coordinates HAS a pole, its up
+    // vector is degenerate there, and the polar clamp that protects it is what
+    // the drag runs into. Rotating the protein against a fixed camera has no
+    // pole to protect, so it tumbles freely, like the object in the hand the
+    // gesture is meant to be.
+    //
+    //   subject   carries the attitude quaternion, sits at the world origin
+    //     centring  shifts the structure so its centroid IS that origin, so it
+    //               spins about its own middle rather than swinging around it
+    this.subject = new THREE.Group();
+    this.centring = new THREE.Group();
+    this.subject.add(this.centring);
+    this.scene.add(this.subject);
+
+    this.control = new StageCamera(90);
+    // The explicit toggle. StageCamera resumes its own orbit after a delay;
+    // this is the only thing that stops it for good.
+    this._rotateOff = false;
 
     this.webgl = new THREE.WebGLRenderer({ antialias: true, alpha: false,
       preserveDrawingBuffer: true });   // required for PNG export
@@ -43,59 +64,17 @@ export class Renderer {
     this.webgl.toneMappingExposure = 1.05;
     container.appendChild(this.webgl.domElement);
 
-    this.controls = new OrbitControls(this.camera, this.webgl.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.06;
-    this.controls.autoRotate = true;
-    this.controls.autoRotateSpeed = 0.85;
-    this.controls.minDistance = 5;
-    this.controls.maxDistance = 900;
-
-    // Auto-rotate PAUSES while you are interacting and RESUMES when you stop.
-    //
-    // It used to stop dead on the first pointerdown or wheel, with {once:true},
-    // which is what the brief asked for and is wrong in practice. Scrolling the
-    // page with the cursor over the canvas is a wheel event. Clicking a residue
-    // to read its tooltip is a pointerdown. Either killed the rotation forever,
-    // and the only way to get it back was a toggle at the bottom of a scrolling
-    // panel, below the fold. The app read as broken.
-    //
-    // `_rotateOff` is the user's explicit choice via the toggle and is the only
-    // thing that stops rotation permanently. Everything else is a pause.
-    this._rotateOff = false;
-    this._resumeTimer = null;
-    const pause = () => {
-      if (this._rotateOff) return;
-      this.controls.autoRotate = false;
-      clearTimeout(this._resumeTimer);
-      // Long enough not to fight someone still moving, short enough that the
-      // page comes back to life on its own.
-      this._resumeTimer = setTimeout(() => {
-        if (!this._rotateOff) {
-          this.controls.autoRotate = true;
-          this._notifyRotate();
-        }
-      }, 2600);
-      this._notifyRotate();
-    };
-    const element = this.webgl.domElement;
-    for (const type of ['pointerdown', 'pointermove', 'wheel']) {
-      element.addEventListener(type, (event) => {
-        // A bare hover should not pause it; only an actual drag or a zoom.
-        if (type === 'pointermove' && !event.buttons) return;
-        pause();
-      }, { passive: true });
-    }
-    element.addEventListener('pointerup', pause, { passive: true });
-
-    this._lights();
-    this._composer();
-
+    // Pointer state the gesture handlers and the raycaster both write to, so it
+    // has to exist before the listeners are attached.
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
     this._hovered = null;
     this._lastPick = 0;
-    this._bindPointer();
+
+    this._bindGestures();
+
+    this._lights();
+    this._composer();
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
@@ -108,6 +87,84 @@ export class Renderer {
     this._tick = this._tick.bind(this);
     this._running = true;
     requestAnimationFrame(this._tick);
+  }
+
+  /**
+   * Pointer, wheel and touch translated into StageCamera calls and nothing else.
+   *
+   * Every gesture is a delta since the last event, which is what lets the
+   * camera compose rotations about the SCREEN axes and keep "drag right turns
+   * right" true even when the protein is upside down.
+   */
+  _bindGestures() {
+    const element = this.webgl.domElement;
+    // The browser must not claim the gesture for scrolling or pinch-zoom, or a
+    // touch drag scrolls the page instead of turning the protein.
+    element.style.touchAction = 'none';
+
+    let lastX = 0, lastY = 0;
+    const pointers = new Map();
+
+    element.addEventListener('pointerdown', (event) => {
+      element.setPointerCapture(event.pointerId);
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      lastX = event.clientX; lastY = event.clientY;
+      this._dragging = true;
+    });
+
+    element.addEventListener('pointermove', (event) => {
+      const rect = element.getBoundingClientRect();
+      this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      this._pointerScreen = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      this._pointerMoved = true;
+
+      if (!pointers.has(event.pointerId)) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (pointers.size >= 2) {
+        // Pinch: the distance between the first two contacts against its value
+        // at the start of the gesture.
+        const [a, b] = [...pointers.values()];
+        const span = Math.hypot(a.x - b.x, a.y - b.y);
+        this._pinchStart = this._pinchStart || span;
+        this.control.magnify(span / this._pinchStart);
+        return;
+      }
+      this.control.drag(event.clientX - lastX, event.clientY - lastY);
+      lastX = event.clientX; lastY = event.clientY;
+      this._notifyRotate();
+    });
+
+    const release = (event) => {
+      pointers.delete(event.pointerId);
+      if (pointers.size < 2) this._pinchStart = null;
+      if (pointers.size === 0) {
+        this._dragging = false;
+        this.control.endInteraction();
+        this._notifyRotate();
+      }
+    };
+    for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+      element.addEventListener(type, release);
+    }
+
+    element.addEventListener('wheel', (event) => {
+      event.preventDefault();
+      // Normalised so a trackpad and a notched wheel feel the same.
+      this.control.zoom(-event.deltaY * 0.0016);
+      this._notifyRotate();
+    }, { passive: false });
+
+    element.addEventListener('dblclick', () => this.resetCamera());
+
+    element.addEventListener('pointerleave', () => {
+      this._pointerScreen = null;
+      if (this._hovered !== null) { this._hovered = null; this.onHover?.(null, null); }
+    });
+    element.addEventListener('click', () => {
+      if (this._hovered !== null) this.onPick?.(this._hovered);
+    });
   }
 
   /**
@@ -175,8 +232,9 @@ export class Renderer {
     });
   }
 
-  add(object) { this.scene.add(object); }
-  remove(object) { this.scene.remove(object); }
+  /** Renderable content goes INSIDE the subject so it turns with everything else. */
+  add(object) { this.centring.add(object); }
+  remove(object) { this.centring.remove(object); }
 
   /**
    * The ghost backbone: a thin tube through the CA positions so the fold reads
@@ -185,7 +243,7 @@ export class Renderer {
    */
   setBackbone(caPositions, { opacity = 0.15, radius = 0.34 } = {}) {
     if (this.backbone) {
-      this.scene.remove(this.backbone);
+      this.centring.remove(this.backbone);
       this.backbone.geometry.dispose();
       this.backbone.material.dispose();
       this.backbone = null;
@@ -203,7 +261,7 @@ export class Renderer {
       roughness: 0.55, metalness: 0.1, depthWrite: false,
     });
     this.backbone = new THREE.Mesh(geometry, material);
-    this.scene.add(this.backbone);
+    this.centring.add(this.backbone);
   }
 
   setBackboneOpacity(opacity) {
@@ -220,79 +278,96 @@ export class Renderer {
     if (!caPositions?.length) return;
     const box = new THREE.Box3().setFromPoints(caPositions);
     const centre = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3()).length();
 
-    this.controls.target.copy(centre);
-    // 1.05 rather than 1.35: the letters are the product and a loose frame
-    // leaves them too small to read, which is the one thing this app cannot
-    // afford. Orbit controls let anyone pull back who wants to.
-    const distance = Math.max(14, size * 1.05);
-    this.camera.position.copy(centre).add(new THREE.Vector3(0, size * 0.12, distance));
+    // Shift the structure so its centroid sits on the subject's origin. Without
+    // this the protein would swing around a point off to one side instead of
+    // turning about its own middle.
+    this.centring.position.copy(centre).multiplyScalar(-1);
+    this.subject.quaternion.set(0, 0, 0, 1);
+
+    // The BOUNDING SPHERE, not the box diagonal.
+    //
+    // Two reasons. A tumbling subject presents a different silhouette every
+    // frame, and the only extent that does not change as it turns is the radius
+    // about its own centre, so framing on it means the protein never clips and
+    // never needs re-framing mid-rotation. And a box diagonal badly
+    // overestimates a globular protein -- roughly 1.7x its real diameter --
+    // which pushed the camera far enough back that the letters were too small
+    // to read, which is the one thing this app cannot afford.
+    let radius = 0;
+    for (const position of caPositions) {
+      radius = Math.max(radius, position.distanceTo(centre));
+    }
+    // Glyph stacks grow outward along the side chains, so allow for the tallest
+    // of them plus a little air rather than framing the backbone alone.
+    radius += 4.5;
+    this._radius = radius;
+
+    // Fit that sphere to whichever field-of-view axis is narrower.
+    const vertical = THREE.MathUtils.degToRad(this.camera.fov);
+    const horizontal = 2 * Math.atan(Math.tan(vertical / 2) * this.camera.aspect);
+    const distance = Math.max(14, radius / Math.sin(Math.min(vertical, horizontal) / 2));
+
+    this.control.setDefaultDistance(distance);
+    this.control.reframe();
+    this._applyCamera();
+  }
+
+  /** Push the control's state onto the three.js objects. Called every frame. */
+  _applyCamera() {
+    const [x, y, z, w] = this.control.attitude;
+    this.subject.quaternion.set(x, y, z, w);
+    this.camera.position.set(0, 0, this.control.distance);
+    this.camera.lookAt(0, 0, 0);
+
+    const distance = this.control.distance;
     this.camera.near = Math.max(0.4, distance / 900);
     this.camera.far = distance * 12;
     this.camera.updateProjectionMatrix();
 
-    this.scene.fog.near = distance * 0.75;
-    this.scene.fog.far = distance * 2.6;
-    this.controls.update();
-    this._home = { position: this.camera.position.clone(), target: centre.clone() };
+    // Fog follows the zoom, so pulling back never fades the whole protein out.
+    this.scene.fog.near = Math.max(1, distance - (this._radius || 20) * 1.7);
+    this.scene.fog.far = distance + (this._radius || 20) * 3.4;
   }
 
-  /** Fly the camera to one residue. Used by the ruler and the BALDERDASH heatmap. */
-  flyTo(position, { distance = 26, milliseconds = 620 } = {}) {
-    const startTarget = this.controls.target.clone();
-    const startPosition = this.camera.position.clone();
-    // Approach from where the camera already is, so the move reads as a dolly
-    // rather than a cut to an unrelated viewpoint.
-    const direction = startPosition.clone().sub(startTarget).normalize();
-    const endPosition = position.clone().add(direction.multiplyScalar(distance));
-    const started = performance.now();
-    // Pause for the duration of the flight, then let the normal resume happen.
-    this.controls.autoRotate = false;
-    clearTimeout(this._resumeTimer);
-    this._resumeTimer = setTimeout(() => {
-      if (!this._rotateOff) { this.controls.autoRotate = true; this._notifyRotate(); }
-    }, milliseconds + 1800);
-    this._notifyRotate();
+  /**
+   * Turn a residue to face the viewer. Used by the ruler and the heatmap.
+   *
+   * With a fixed camera this is a rotation of the subject rather than a move of
+   * the camera: find the shortest rotation that carries the residue's direction
+   * from the centre round to +Z, and slerp the attitude onto it.
+   */
+  flyTo(position, { milliseconds = 620 } = {}) {
+    if (!this.control) return;
+    // Where the residue sits in the subject's own frame, before any attitude.
+    const local = position.clone().add(this.centring.position).normalize();
+    if (!Number.isFinite(local.x) || local.lengthSq() === 0) return;
 
+    const target = new THREE.Quaternion()
+      .setFromUnitVectors(local, new THREE.Vector3(0, 0, 1));
+    const start = new THREE.Quaternion(...this.control.attitude);
+    const started = performance.now();
+
+    // A drag mid-flight should win, so the animation checks who is in charge.
+    this._flying = true;
     const step = (now) => {
+      if (!this._flying) return;
       const t = Math.min(1, (now - started) / milliseconds);
-      // easeInOutCubic: a linear fly-to looks mechanical at both ends.
-      const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-      this.controls.target.lerpVectors(startTarget, position, e);
-      this.camera.position.lerpVectors(startPosition, endPosition, e);
-      this.controls.update();
+      const eased = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+      const q = start.clone().slerp(target, eased);
+      this.control.attitude = [q.x, q.y, q.z, q.w];
+      this.control.idleTime = 0;          // do not resume orbiting mid-flight
       if (t < 1) requestAnimationFrame(step);
+      else this._flying = false;
     };
     requestAnimationFrame(step);
   }
 
+  /** Double-click, the reset button, or the 0 key: frame the whole thing again. */
   resetCamera() {
-    if (!this._home) return;
-    this.controls.target.copy(this._home.target);
-    this.camera.position.copy(this._home.position);
-    this.controls.update();
-  }
-
-  _bindPointer() {
-    const element = this.webgl.domElement;
-    element.addEventListener('pointermove', (event) => {
-      const rect = element.getBoundingClientRect();
-      this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      this._pointerScreen = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      this._pointerMoved = true;
-    });
-    element.addEventListener('pointerleave', () => {
-      this._pointerScreen = null;
-      if (this._hovered !== null) {
-        this._hovered = null;
-        this.onHover?.(null, null);
-      }
-    });
-    element.addEventListener('click', () => {
-      if (this._hovered !== null) this.onPick?.(this._hovered);
-    });
+    this._flying = false;
+    this.control.reframe();
+    this._notifyRotate();
   }
 
   /** Set the pickable objects. Called by whichever mode is active. */
@@ -313,14 +388,22 @@ export class Renderer {
   }
 
   onAutoRotateChange(callback) { this._rotateCallback = callback; }
-  _notifyRotate() { this._rotateCallback?.(this.controls.autoRotate); }
+  _notifyRotate() { this._rotateCallback?.(this.isOrbiting); }
 
-  /** The explicit toggle. This is the only thing that stops rotation for good. */
+  /** True when the stage is actually turning on its own right now. */
+  get isOrbiting() { return !this._rotateOff && this.control.isOrbiting; }
+
+  /** The explicit toggle. This is the only thing that stops the orbit for good. */
   setAutoRotate(on, speed) {
     this._rotateOff = !on;
-    clearTimeout(this._resumeTimer);
-    this.controls.autoRotate = on;
-    if (speed !== undefined) this.controls.autoRotateSpeed = speed;
+    if (on) {
+      // Start turning now rather than after the resume delay: the user just
+      // asked for it, so waiting eight seconds reads as a broken button.
+      this.control.endInteraction();
+      this.control.idleTime = this.control.resumeDelay;
+    }
+    if (speed !== undefined) this.control.autoOrbitRate = speed * 0.14;
+    this._notifyRotate();
   }
 
   resize() {
@@ -343,11 +426,29 @@ export class Renderer {
 
     const delta = this._clock.getDelta();
     this._update?.(delta, now);
-    this.controls.update();
+
+    // The stage advances itself: it resumes its own slow orbit once the visitor
+    // has been still for long enough, and does nothing while they are dragging.
+    if (!this._rotateOff && !this._flying) this.control.advance(delta);
+    const wasOrbiting = this._orbitState;
+    this._orbitState = this.isOrbiting;
+    if (wasOrbiting !== this._orbitState) this._notifyRotate();
+    this._applyCamera();
 
     // Raycasting every frame is wasteful and the tooltip does not need 120 Hz.
     // Throttled to roughly 30 Hz, as the build spec asks.
-    if (this._pointerMoved && now - this._lastPick > 33) {
+    //
+    // Skipped entirely while a button is held: a raycast against twenty
+    // instanced meshes carrying up to 4,200 letters is the single most
+    // expensive thing per frame, and during a drag it buys nothing because
+    // nobody is reading a tooltip while swinging the camera around. It was
+    // costing more than half the frame rate exactly when smoothness matters
+    // most (13 fps mid-drag under software rendering).
+    if (this._dragging && this._hovered !== null) {
+      this._hovered = null;
+      this.onHover?.(null, null);
+    }
+    if (!this._dragging && this._pointerMoved && now - this._lastPick > 33) {
       this._lastPick = now;
       this._pointerMoved = false;
       this._pick();
@@ -395,7 +496,6 @@ export class Renderer {
   dispose() {
     this._running = false;
     this.resizeObserver.disconnect();
-    this.controls.dispose();
     this.composer.dispose();
     this.webgl.dispose();
     this.webgl.domElement.remove();

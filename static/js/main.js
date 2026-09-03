@@ -87,7 +87,7 @@ async function boot() {
   state.modeKey = initialMode();
   // Test hook: lets an automated drag check whether the camera actually moved.
   window.__ALPHA_CAMPOS = () => state.renderer.camera.position.toArray().map(v => +v.toFixed(3));
-  window.__ALPHA_CTRL = () => state.renderer.controls;
+  window.__ALPHA_CTRL = () => state.renderer.control;
   window.__ALPHA_R = () => state.renderer;
   wireInputs();
   wireTabs();

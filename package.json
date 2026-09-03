@@ -1,0 +1,9 @@
+{
+  "name": "alphabetti",
+  "private": true,
+  "type": "module",
+  "description": "ES module declaration so node --test can import the browser modules directly. There is no build step and no dependencies; this file exists only so Node treats static/js/*.js as ES modules rather than CommonJS.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}
