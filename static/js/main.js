@@ -17,6 +17,8 @@ import { Bumfluff } from './modes/bumfluff.js';
 import { Balderdash } from './modes/balderdash.js';
 import { Folderol } from './modes/folderol.js';
 import { Hogwash, LAYOUTS } from './modes/hogwash.js';
+
+const NEUTRAL = new THREE.Color(0x6b7398);
 import { exportGLB, exportSTL, exportPNG, exportGIF } from './exporters.js';
 
 const state = {
@@ -122,6 +124,7 @@ function cache(target) {
   target.downloads = document.querySelector('[data-downloads]');
   target.rotateButton = document.querySelector('[data-rotate-toggle]');
   target.cite = document.querySelector('[data-cite]');
+  target.models = document.querySelector('[data-models]');
   target.expand = document.querySelector('[data-expand]');
   target.dock = document.querySelector('[data-residue-dock]');
   target.dockBody = document.querySelector('[data-dock-body]');
@@ -278,7 +281,19 @@ function setMode(key, { force = false } = {}) {
   state.modeKey = key;
   const context = { field: state.field, glyphSet: state.glyphSet,
                     renderer: state.renderer, data: state.data };
-  state.mode = new MODES[key].Class(context);
+
+  // The structural modes are rebuilt each time because they read the current
+  // protein out of the context. HOGWASH does not: its data is an alignment,
+  // which has nothing to do with whichever structure is loaded. Rebuilding it
+  // threw that alignment away, so leaving the tab and coming back emptied it
+  // and the autoload had already fired and would not fire again.
+  if (key === 'hogwash' && state.hogwash) {
+    state.hogwash.context = context;
+    state.mode = state.hogwash;
+  } else {
+    state.mode = new MODES[key].Class(context);
+    if (key === 'hogwash') state.hogwash = state.mode;
+  }
 
   // Shared settings persist across a tab change: a user who set the scale
   // should not have it reset by looking at another tab.
@@ -331,7 +346,31 @@ function rebuild() {
   // the consensus residue per column -- rather than colouring the structure's
   // sequence with numbers belonging to different positions.
   if (state.modeKey === 'hogwash') {
-    if (!state.mode.data) { state.mode.build(); renderLegend(); return; }
+    if (!state.mode.data) {
+      // Switching in with no alignment used to leave the PREVIOUS tab's ghost
+      // backbone on screen with no letters on it, and its statistics still in
+      // the panel: a protein's ribbon labelled with an alignment's legend, and
+      // it read as a broken renderer rather than as an empty tab.
+      state.mode.build();
+      state.renderer.setBackbone(null);
+      state.renderer.setFocusMarker(null);
+      state.ruler.render({ length: 0, residues: [], source: {} }, () => NEUTRAL);
+      stats(dom.stats, []);
+      renderLegend();
+      // The app's own rule is that a landing state is never empty, and this is
+      // a landing state. Load something rather than explaining that nothing is
+      // loaded.
+      if (!state.logoAutoloaded) {
+        state.logoAutoloaded = true;
+        const first = Object.keys(state.logoExamples || {})[0];
+        const label = state.logoExamples?.globins ? 'globins' : first;
+        if (label) {
+          loadAlignment({ example: label },
+            state.logoExamples[label]?.label || label);
+        }
+      }
+      return;
+    }
     const columns = state.mode.data.columns;
     const rows = {
       length: columns.length,
@@ -893,14 +932,21 @@ function renderStats(result) {
 
 function renderLegend() {
   const legend = state.mode.legend;
-  const s = state.data.stats;
+  // "secondary structure via DSSP" and the model line belong to the tabs that
+  // show a predicted structure. On HOGWASH they are not merely irrelevant, they
+  // are wrong: the models line ends "no alignment used", which is the whole
+  // point of the other four tabs and the exact opposite of this one.
+  const structural = state.modeKey !== 'hogwash';
+  if (dom.models) dom.models.hidden = !structural;
+
+  let html = `<b>${legend.text}</b><br>${legend.detail}`;
+  if (structural && state.data?.stats) {
+    html += `<br>secondary structure via ${state.data.stats.ss_method}`;
+  }
   // Provenance ("masked marginals ...", "folded on ...") deliberately not here.
-  // It is a fact about how the numbers were made, not about what is on screen,
-  // and it was three lines of small type competing with the legend it sat under.
+  // It is a fact about how the numbers were made, not about what is on screen.
   // The About page carries it in full.
-  dom.legend.innerHTML =
-    `<b>${legend.text}</b><br>${legend.detail}`
-    + `<br>secondary structure via ${s.ss_method}`;
+  dom.legend.innerHTML = html;
 }
 
 function renderDownloads(payload) {
