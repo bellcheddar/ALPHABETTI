@@ -506,3 +506,117 @@ table.data th {
 }
 table.data td { color: var(--ne-fg-dim); }
 table.data tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+/* ==========================================================================
+   On-canvas controls. These two are the ones people reach for constantly, so
+   they sit on the canvas rather than at the bottom of a scrolling panel where
+   a stray scroll has just paused the rotation and the toggle is out of sight.
+   ========================================================================== */
+
+.viewport-controls {
+  position: absolute; left: 14px; top: 12px; z-index: 15;
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.vc {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(10, 10, 22, 0.72);
+  border: 1px solid var(--ne-edge-bright); border-radius: var(--ne-radius);
+  color: var(--ne-cyan); cursor: pointer;
+  font-family: var(--ne-mono); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 5px 9px; line-height: 1;
+  transition: all 0.16s; backdrop-filter: blur(3px);
+}
+.vc:hover {
+  border-color: var(--ne-cyan); background: rgba(38, 245, 224, 0.14);
+  box-shadow: 0 0 12px rgba(38, 245, 224, 0.22);
+}
+.vc.off { color: var(--ne-fg-faint); border-color: var(--ne-edge); }
+.vc.off:hover { color: var(--ne-cyan); }
+@media (max-width: 600px) { .vc span { display: none; } .vc { padding: 6px 8px; } }
+
+/* ==========================================================================
+   The ignition sweep.
+
+   Every highlighted initial in a backronym is a neon tube, and they strike in
+   turn along the phrase: a cold cyan, a hard white flicker as the gas takes,
+   then a magenta afterglow that fades back down. The pulse travels left to
+   right and the whole thing loops.
+
+   Deliberately NOT the scale-bounce used on CODSWALLOP's acronym. This one
+   moves nothing: it is pure colour and glow, which is what a neon sign does
+   and what this app's whole visual direction is about. Two apps doing the same
+   trick in the same house is how they start to look like one app.
+   ========================================================================== */
+
+.ignite b {
+  font-weight: 700;
+  color: var(--ne-cyan);
+  /* Both properties are animated, so declare the resting state here rather
+     than only inside the keyframes. */
+  text-shadow: 0 0 6px var(--ne-cyan-glow);
+  animation: ignite 6s cubic-bezier(0.4, 0, 0.2, 1) infinite both;
+}
+
+@keyframes ignite {
+  /* Cold: the tube is lit but idle. */
+  0%, 46%, 100% {
+    color: var(--ne-cyan);
+    text-shadow: 0 0 6px var(--ne-cyan-glow);
+  }
+  /* The strike: two fast flickers, the way a real tube catches. */
+  5%  { color: #ffffff; text-shadow: 0 0 4px #fff, 0 0 14px var(--ne-cyan-glow); }
+  7%  { color: var(--ne-cyan); text-shadow: 0 0 3px var(--ne-cyan-glow); }
+  9%  { color: #ffffff;
+        text-shadow: 0 0 6px #fff, 0 0 20px var(--ne-cyan-glow),
+                     0 0 34px var(--ne-magenta-glow); }
+  /* Full burn, magenta afterglow. */
+  18% { color: #fff0fb;
+        text-shadow: 0 0 7px #fff, 0 0 22px var(--ne-magenta-glow),
+                     0 0 44px var(--ne-magenta-glow); }
+  /* Cooling back through the accent. */
+  32% { color: var(--ne-cyan);
+        text-shadow: 0 0 10px var(--ne-cyan-glow), 0 0 24px var(--ne-magenta-glow); }
+}
+
+/* The stagger is what makes it read as one pulse travelling along the phrase
+   rather than ten letters blinking at once. Ten covers the longest backronym
+   here (BALDERDASH); nth-of-type beyond the count simply never matches. */
+.ignite b:nth-of-type(1)  { animation-delay: 0s; }
+.ignite b:nth-of-type(2)  { animation-delay: 0.11s; }
+.ignite b:nth-of-type(3)  { animation-delay: 0.22s; }
+.ignite b:nth-of-type(4)  { animation-delay: 0.33s; }
+.ignite b:nth-of-type(5)  { animation-delay: 0.44s; }
+.ignite b:nth-of-type(6)  { animation-delay: 0.55s; }
+.ignite b:nth-of-type(7)  { animation-delay: 0.66s; }
+.ignite b:nth-of-type(8)  { animation-delay: 0.77s; }
+.ignite b:nth-of-type(9)  { animation-delay: 0.88s; }
+.ignite b:nth-of-type(10) { animation-delay: 0.99s; }
+
+/* A flickering sign is exactly the thing to switch off here. The letters stay
+   highlighted, they just stop moving. */
+@media (prefers-reduced-motion: reduce) {
+  .ignite b {
+    animation: none;
+    color: var(--ne-cyan);
+    text-shadow: 0 0 6px var(--ne-cyan-glow);
+  }
+}
+
+/* ---- tabs now carry the spelled-out backronym ---------------------------- */
+
+.tab {
+  text-align: left;
+  max-width: 260px;
+}
+.tab-sub {
+  display: block; font-size: 8.5px; letter-spacing: 0.04em; line-height: 1.45;
+  color: var(--ne-fg-faint); margin-top: 3px; font-weight: 400;
+  text-transform: none;   /* the capitals ARE the acronym; never uppercase this */
+  white-space: normal;
+}
+.tab[aria-selected="true"] .tab-sub { color: var(--ne-fg-dim); text-shadow: none; }
+/* Only the selected tab's initials burn, so the strip is not a fairground. */
+.tab:not([aria-selected="true"]) .ignite b { animation: none; color: var(--ne-cyan-dim); text-shadow: none; }
+
+@media (max-width: 1100px) { .tab { max-width: 190px; } .tab-sub { font-size: 8px; } }
+@media (max-width: 760px)  { .tab { max-width: none; } .tab-sub { display: none; } }

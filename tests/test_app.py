@@ -61,7 +61,7 @@ def test_examples_are_prewarmed(client):
     """The landing state must never be empty, so these must be in the cache."""
     body = json.loads(client.get("/healthz").data)
     assert "ubiquitin" in body["examples_warm"]
-    for name in ("ubiquitin", "lysozyme", "myoglobin", "gfp"):
+    for name in ("ubiquitin", "lysozyme", "myoglobin", "tim"):
         response = client.get(f"/api/example/{name}")
         assert response.status_code == 200, name
         assert len(json.loads(response.data)["residues"]) > 10
@@ -189,6 +189,42 @@ def test_downloads(client):
     assert client.get(f"/api/download/{result_id}.json").status_code == 200
     assert client.get(f"/api/download/{result_id}.pdb").status_code == 200
     assert client.get(f"/api/download/{result_id}.xyz").status_code == 400
+
+
+def test_examples_use_mature_chains_not_precursors(client):
+    """Every example names a residue range, and it must actually be applied.
+
+    The database sequence is the precursor. Ubiquitin's entry is a nine-copy
+    tandem polyprotein and lysozyme's carries an 18-residue signal peptide that
+    is cleaved in vivo, has no structure of its own, and trails off the fold as
+    a disordered tail. Both look plausible if the range is silently dropped.
+    """
+    lengths = {"ubiquitin": 76, "lysozyme": 129, "myoglobin": 153, "tim": 248}
+    for name, expected in lengths.items():
+        payload = json.loads(client.get(f"/api/example/{name}").data)
+        assert payload["length"] == expected, name
+
+    lysozyme = json.loads(client.get("/api/example/lysozyme").data)
+    # The signal peptide is MRSLLILVLCFLPLAALG; the mature chain starts KVFGRC.
+    assert lysozyme["sequence"].startswith("KVFGRC")
+    assert "MRSLLILVLCFLPLAALG" not in lysozyme["sequence"]
+
+    # Ubiquitin's monomer must not be followed by a second copy of itself.
+    ubiquitin = json.loads(client.get("/api/example/ubiquitin").data)
+    assert ubiquitin["sequence"].startswith("MQIFVKTLTGK")
+    assert ubiquitin["sequence"].count("MQIFVKTLTGK") == 1
+
+
+def test_examples_all_fold_confidently(client):
+    """No example may ship with a fold nobody should trust.
+
+    GFP was removed for exactly this: mean pLDDT 42.8, because ESM-2 has almost
+    no signal for it and ESMFold shares that trunk. An example is a claim about
+    what the app does well.
+    """
+    for name in ("ubiquitin", "lysozyme", "myoglobin", "tim"):
+        payload = json.loads(client.get(f"/api/example/{name}").data)
+        assert payload["stats"]["mean_plddt"] > 85, (name, payload["stats"]["mean_plddt"])
 
 
 def test_missing_result_is_a_clean_404(client):

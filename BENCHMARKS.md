@@ -31,13 +31,22 @@ Measured 2026-09-03 via `scripts/prewarm.py`. "Wall" is the complete round trip
 from the droplet's point of view, including queueing and transfer; the two GPU
 columns are what the Space reports for itself.
 
-| Protein | Accession | Residues | Wall (s) | ESMFold (s) | ESM-2 masked (s) | Mean pLDDT |
+| Protein | Accession (chain) | Residues | Wall (s) | ESMFold (s) | ESM-2 masked (s) | Mean pLDDT |
 |---|---|---|---|---|---|---|
-| Ubiquitin | P0CG48 (1-76) | 76 | 2.7 | 0.76 | 0.41 | 90.5 |
-| Lysozyme C | P00698 | 147 | 5.1 | 1.02 | 1.56 | 91.0 |
-| Myoglobin | P02144 | 154 | 7.3 | 1.09 | 1.69 | 93.3 |
-| GFP | P42212 | 238 | 10.9 | 2.86 | 4.47 | 42.8 |
+| Ubiquitin | P0CG48 (1-76) | 76 | 14.9 | 1.54 | 0.43 | 90.5 |
+| Lysozyme C | P00698 (19-147) | 129 | 10.0 | 1.63 | 1.21 | 95.1 |
+| Myoglobin | P02144 (2-154) | 153 | 3.6 | 1.08 | 1.67 | 93.6 |
+| Triosephosphate isomerase | P60174 (2-249) | 248 | 8.7 | 3.11 | 4.77 | 94.8 |
 | Polyubiquitin-C (truncated) | P0CG48 (1-400) | 400 | 32.4 | 11.13 | 12.72 | 93.5 |
+
+Wall times vary with Space warmth and are the least reproducible column here;
+the two GPU columns are stable.
+
+**Folding the mature chain rather than the precursor is worth real accuracy.**
+Lysozyme's UniProt entry carries an 18-residue signal peptide that is cleaved in
+vivo and has no structure of its own. Including it does not merely add a
+disordered tail to the picture: mean pLDDT over the whole chain was **91.0 with
+the signal peptide and 95.1 without it**.
 
 A **cold Space adds 30 to 60 seconds** to the first request after an idle
 period, which is most of the wait on the first fold of the day. The job's stage
@@ -82,13 +91,19 @@ Masked marginals cost 0.42 s against a fold of 0.76 s. They are now the default;
 
 ## Where the method fails, with numbers
 
-GFP is kept as an example precisely because it fails. ESM-2 650M has almost no
-evolutionary signal for avGFP:
+GFP was dropped as an example because it fails, and the replacement was chosen
+by measuring candidates rather than by picking a famous protein. ESM-2 650M has
+almost no evolutionary signal for avGFP:
 
 | Sequence | Masked top-1 | Mean bits |
 |---|---|---|
-| Lysozyme | 66 % | 2.85 |
+| Triosephosphate isomerase | 73 % | 3.24 |
+| Carbonic anhydrase II | 75 % | 2.94 |
 | Ubiquitin | 80 % | 3.20 |
+| Lysozyme | 66 % | 2.85 |
+| Ribonuclease A | 65 % | 2.56 |
+| Streptavidin | 52 % | 2.08 |
+| Retinol-binding protein 4 | 34 % | 1.21 |
 | **GFP** | **10 %** | **0.27** |
 | **GFP, randomly shuffled (control)** | **8 %** | **0.17** |
 
@@ -104,8 +119,8 @@ Gzipped, as served. The brief's budget was 5 MB for a 400-residue protein.
 | Residues | Raw JSON | Gzipped |
 |---|---|---|
 | 76 | 41 KB | 14 KB |
-| 147 | 79 KB | 27 KB |
-| 238 | 126 KB | 44 KB |
+| 129 | 69 KB | 24 KB |
+| 248 | 133 KB | 46 KB |
 | 400 (extrapolated) | 0.21 MB | **74 KB** |
 
 Comfortably inside budget, which is why all four tabs can be served from one

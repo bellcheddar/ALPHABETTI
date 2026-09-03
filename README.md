@@ -16,7 +16,7 @@
 ![numpy](https://img.shields.io/badge/numpy-2.5.2-013243?logo=numpy&logoColor=white)
 ![freesasa](https://img.shields.io/badge/freesasa-2.2.1-5B8FA8)
 ![dssp](https://img.shields.io/badge/DSSP-P--SEA%20fallback-7A5AA8)
-![tests](https://img.shields.io/badge/pytest-47%20passing-0A9EDC?logo=pytest&logoColor=white)
+![tests](https://img.shields.io/badge/pytest-49%20passing-0A9EDC?logo=pytest&logoColor=white)
 ![data](https://img.shields.io/badge/data-UniProt%20·%20RCSB%20·%20EBI%20Proteins-4B8BBE)
 ![phase](https://img.shields.io/badge/phase-v1.0.0-467FF7)
 ![licence](https://img.shields.io/badge/licence-MIT-lightgrey)
@@ -86,9 +86,13 @@ The original specification made masked marginals an opt-in toggle, "L times slow
 
 An unmasked forward pass can read each residue off its own input, so it returns near-maximal confidence everywhere and GIBBERISH becomes a 3D rendering of the input sequence. Set `ALPHABETTI_MASKED_MARGINALS=0` to compare.
 
-### Where it fails, kept on display
+### Where it fails
 
-The GFP example is deliberately one that does not work. ESM-2 has almost no evolutionary signal for avGFP: masked marginals recover the wild-type residue at **10 %** of positions against **8 %** for a randomly shuffled version of the same sequence, and mean information content is 0.27 of a possible 4.322 bits. Because ESMFold's trunk *is* ESM-2, the structure fails with it rather than independently, at mean pLDDT 42.8. The two never contradict each other, which is precisely why it is worth showing. Check the pLDDT before believing a picture.
+ESM-2 has almost no evolutionary signal for avGFP: masked marginals recover the wild-type residue at **10 %** of positions against **8 %** for a randomly shuffled version of the same sequence, and mean information content is 0.27 of a possible 4.322 bits. Because ESMFold's trunk *is* ESM-2, the structure fails with it rather than independently, at mean pLDDT 42.8. The two never contradict each other, so nothing on screen flags it except the confidence number. **Check the pLDDT before believing a picture.**
+
+### Examples name a residue range, deliberately
+
+A UniProt sequence is the **precursor**, and folding it whole gives something nobody means. P0CG48 is nine exact tandem copies of ubiquitin (and the repeats let a masked model copy each position from its neighbours, driving information content to near-maximal everywhere). P00698 carries an 18-residue signal peptide that is cleaved in vivo, has no structure of its own, and trails off the fold as a disordered tail. Every example therefore names a range taken from UniProt's own Chain feature. Removing lysozyme's signal peptide raised its mean pLDDT from **91.0 to 95.1**.
 
 ![BALDERDASH mode: wild-type letters at full size with dimmer ghost letters beneath showing the residues the model would have preferred](docs/screenshots/balderdash.png)
 
@@ -158,7 +162,7 @@ cp .env.example .env          # add HF_TOKEN
 The four examples are committed as computed payloads, so the app shows a rotating protein before it has ever reached a GPU.
 
 ```bash
-.venv/bin/python -m pytest tests/ -q          # 47 tests, no GPU, no network
+.venv/bin/python -m pytest tests/ -q          # 49 tests, no GPU, no network
 .venv/bin/python scripts/prewarm.py           # recompute the examples
 .venv/bin/python scripts/make_typeface.py /path/to/font.ttf out.json 700
 .venv/bin/python scripts/make_icon.py         # icon, favicon, OG card
@@ -178,9 +182,9 @@ Deployment: `deploy/provision.sh` once, `deploy/deploy.sh` thereafter.
 - [x] **Instanced glyph renderer** — one `InstancedMesh` per amino acid, twenty draw calls regardless of chain length.
 - [x] **Baloo 2 to `typeface.json`** — with the curve argument order verified against the source outlines to 0.34 %.
 - [x] **All four tabs** against a single payload, switching with no network round trip.
-- [x] **Four examples spanning the fold classes** — beta-grasp, mixed alpha/beta, all-alpha, and a beta barrel that deliberately fails.
+- [x] **Four examples spanning the fold classes** — beta-grasp, mixed alpha/beta, all-alpha and a TIM barrel, each folding above pLDDT 90, each using its mature chain rather than the UniProt precursor.
 - [x] **Exports** — GLB, STL, PNG at 1x/2x/4x, and an animated GIF over one FOLDEROL loop.
-- [x] **47 tests**, including two regressions for bugs found during the build.
+- [x] **49 tests**, including regressions for the bugs found during the build.
 - [x] **`BENCHMARKS.md`** with real timings from the machines that serve the app.
 - [x] **Neon Signage visual direction**, chosen from five rendered candidates.
 - [ ] **DNS and TLS** — `alphabetti.mdeller.com` needs an A record to 45.55.102.228 and a certbot certificate; mdeller.com's certificate does not cover subdomains.

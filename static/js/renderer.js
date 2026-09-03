@@ -50,11 +50,43 @@ export class Renderer {
     this.controls.autoRotateSpeed = 0.85;
     this.controls.minDistance = 5;
     this.controls.maxDistance = 900;
-    // Auto-rotate stops on the first real interaction. It is an attract loop,
-    // not a feature to fight with while trying to look at something.
-    const stop = () => { this.controls.autoRotate = false; this._notifyRotate(); };
-    this.webgl.domElement.addEventListener('pointerdown', stop, { once: true });
-    this.webgl.domElement.addEventListener('wheel', stop, { once: true, passive: true });
+
+    // Auto-rotate PAUSES while you are interacting and RESUMES when you stop.
+    //
+    // It used to stop dead on the first pointerdown or wheel, with {once:true},
+    // which is what the brief asked for and is wrong in practice. Scrolling the
+    // page with the cursor over the canvas is a wheel event. Clicking a residue
+    // to read its tooltip is a pointerdown. Either killed the rotation forever,
+    // and the only way to get it back was a toggle at the bottom of a scrolling
+    // panel, below the fold. The app read as broken.
+    //
+    // `_rotateOff` is the user's explicit choice via the toggle and is the only
+    // thing that stops rotation permanently. Everything else is a pause.
+    this._rotateOff = false;
+    this._resumeTimer = null;
+    const pause = () => {
+      if (this._rotateOff) return;
+      this.controls.autoRotate = false;
+      clearTimeout(this._resumeTimer);
+      // Long enough not to fight someone still moving, short enough that the
+      // page comes back to life on its own.
+      this._resumeTimer = setTimeout(() => {
+        if (!this._rotateOff) {
+          this.controls.autoRotate = true;
+          this._notifyRotate();
+        }
+      }, 2600);
+      this._notifyRotate();
+    };
+    const element = this.webgl.domElement;
+    for (const type of ['pointerdown', 'pointermove', 'wheel']) {
+      element.addEventListener(type, (event) => {
+        // A bare hover should not pause it; only an actual drag or a zoom.
+        if (type === 'pointermove' && !event.buttons) return;
+        pause();
+      }, { passive: true });
+    }
+    element.addEventListener('pointerup', pause, { passive: true });
 
     this._lights();
     this._composer();
@@ -215,7 +247,12 @@ export class Renderer {
     const direction = startPosition.clone().sub(startTarget).normalize();
     const endPosition = position.clone().add(direction.multiplyScalar(distance));
     const started = performance.now();
+    // Pause for the duration of the flight, then let the normal resume happen.
     this.controls.autoRotate = false;
+    clearTimeout(this._resumeTimer);
+    this._resumeTimer = setTimeout(() => {
+      if (!this._rotateOff) { this.controls.autoRotate = true; this._notifyRotate(); }
+    }, milliseconds + 1800);
     this._notifyRotate();
 
     const step = (now) => {
@@ -278,7 +315,10 @@ export class Renderer {
   onAutoRotateChange(callback) { this._rotateCallback = callback; }
   _notifyRotate() { this._rotateCallback?.(this.controls.autoRotate); }
 
+  /** The explicit toggle. This is the only thing that stops rotation for good. */
   setAutoRotate(on, speed) {
+    this._rotateOff = !on;
+    clearTimeout(this._resumeTimer);
     this.controls.autoRotate = on;
     if (speed !== undefined) this.controls.autoRotateSpeed = speed;
   }
@@ -297,6 +337,7 @@ export class Renderer {
   setUpdate(callback) { this._update = callback; }
 
   _tick(now) {
+    this.__ticks = (this.__ticks || 0) + 1;
     if (!this._running) return;
     requestAnimationFrame(this._tick);
 
@@ -312,8 +353,14 @@ export class Renderer {
       this._pick();
     }
 
-    this.composer.render();
+    try {
+      this.composer.render();
+    } catch (error) {
+      this.__lastError = error;
+      throw error;
+    }
 
+    this.__frames = (this.__frames || 0) + 1;   // reached only if render() did not throw
     this._frames++;
     if (now - this._fpsAt >= 1000) {
       this.fps = Math.round((this._frames * 1000) / (now - this._fpsAt));
@@ -331,7 +378,12 @@ export class Renderer {
     this.webgl.setPixelRatio(Math.min(4, previousRatio * scale));
     if (transparent) this.scene.background = null;
     this.composer.setSize(width, height);
-    this.composer.render();
+    try {
+      this.composer.render();
+    } catch (error) {
+      this.__lastError = error;
+      throw error;
+    }
     const url = this.webgl.domElement.toDataURL('image/png');
 
     this.webgl.setPixelRatio(previousRatio);

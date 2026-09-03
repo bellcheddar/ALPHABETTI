@@ -25,34 +25,46 @@ from config import Config, get_config
 EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
 # The three examples named in the build spec. Loaded into the cache at start-up
 # so the landing state is never empty and the buttons never queue.
-# Four examples, chosen to span the fold classes rather than to be famous:
-# a beta-grasp, a mixed alpha/beta, an all-alpha, and a beta barrel.
+# Four examples, chosen to span the fold classes rather than to be famous: a
+# beta-grasp, a mixed alpha/beta, an all-alpha and a TIM barrel.
 #
-# The fourth is there for a different reason. ESM-2 650M has almost no
-# evolutionary signal for avGFP: masked marginals recover the wild-type residue
-# at 10 % of positions against 8 % for a shuffled control, and mean information
-# content is 0.27 of a possible 4.322 bits. ESMFold's trunk IS ESM-2, so the
-# structure degrades with it (mean pLDDT 43). It is the clearest possible
-# demonstration of the method's limits, and showing it is more honest than
-# picking four proteins that all flatter the model.
+# Each names an explicit residue range taken from UniProt's own Chain feature,
+# because the database sequence is the PRECURSOR. Folding it whole gives things
+# nobody means:
+#
+#   P0CG48 is polyubiquitin-C, nine exact tandem copies of the 76-residue
+#          monomer. Beyond being the wrong molecule, the repeats let a masked
+#          language model copy each position from its neighbours, which drives
+#          information content to near-maximal everywhere and makes the logo
+#          meaningless.
+#   P00698 carries an 18-residue signal peptide that is cleaved in vivo. It has
+#          no structure of its own and hangs off the fold as a long disordered
+#          tail, which is all anyone sees.
+#   P02144 and P60174 lose only the initiator methionine, but the annotation is
+#          free to follow.
+#
+# GFP was here and has been removed. ESM-2 has essentially no signal for it
+# (10 % masked top-1 against 8 % for a shuffled control, 0.27 of 4.322 bits,
+# mean pLDDT 43), so it rendered as a flat, uninformative logo on a poor
+# structure. The finding is worth keeping and is documented on the About page
+# as a limitation; it is not worth shipping as one of four demo buttons.
 EXAMPLES = {
     "ubiquitin": {
         "label": "Ubiquitin", "accession": "P0CG48", "residues": (1, 76),
-        "note": "Beta-grasp fold. The monomer, not the polyubiquitin precursor.",
+        "note": "Beta-grasp fold. The monomer, not the nine-copy precursor.",
     },
     "lysozyme": {
-        "label": "Lysozyme", "accession": "P00698",
-        "note": "Mixed alpha/beta. Well represented in UniRef, so the logo is rich.",
+        "label": "Lysozyme", "accession": "P00698", "residues": (19, 147),
+        "note": "Mixed alpha/beta. Mature chain, with the signal peptide removed.",
     },
     "myoglobin": {
-        "label": "Myoglobin", "accession": "P02144",
+        "label": "Myoglobin", "accession": "P02144", "residues": (2, 154),
         "note": "All-alpha globin fold. Helices read as spiral staircases.",
     },
-    "gfp": {
-        "label": "GFP", "accession": "P42212",
-        "note": "Beta barrel, and the honest failure case: ESM-2 has almost no "
-                "signal for this jellyfish protein, so both the logo and the "
-                "structure are poor. Kept deliberately.",
+    "tim": {
+        "label": "TIM barrel", "accession": "P60174", "residues": (2, 249),
+        "note": "Triosephosphate isomerase: eight parallel strands ringed by "
+                "eight helices, the most common fold in biology.",
     },
 }
 

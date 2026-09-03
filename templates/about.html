@@ -93,12 +93,22 @@ height_a = p_a * R_i                    per-letter height, bits</pre>
       <li><b>Maximum {{ max_length }} residues</b>, minimum 10.</li>
       <li><b>ESMFold degrades on low-homology and disordered sequences</b>, and it degrades quietly. Because ESMFold's trunk <i>is</i> ESM-2, the language model and the structure fail together rather than independently: when the model has no evolutionary signal for a sequence, you get both a poor fold and a flat, uninformative logo, and the two will not contradict each other.</li>
       <li>
-        <b>The GFP example is there to show exactly that.</b> Masked marginals
-        recover the wild-type residue at 10 % of positions in avGFP, against 8 %
-        for a randomly shuffled version of the same sequence, and mean
-        information content is 0.27 of a possible 4.322 bits. Mean pLDDT is 43.
-        It is a famous, heavily studied protein that this method has almost
-        nothing to say about. Check the pLDDT before you believe a picture.
+        <b>A worked example of that failure: avGFP.</b> Masked marginals recover
+        the wild-type residue at 10 % of positions, against 8 % for a randomly
+        shuffled version of the same sequence, and mean information content is
+        0.27 of a possible 4.322 bits. Mean pLDDT is 43. It is a famous,
+        heavily studied protein that this method has almost nothing useful to
+        say about, and nothing on screen would tell you so except the
+        confidence number. <b>Check the pLDDT before you believe a picture.</b>
+      </li>
+      <li>
+        <b>The database sequence is usually a precursor.</b> The examples name
+        explicit residue ranges from UniProt's Chain feature for this reason:
+        P0CG48 is nine tandem copies of ubiquitin, not one, and P00698 carries
+        an 18-residue signal peptide that is cleaved in vivo and folds into
+        nothing. Paste an accession and you get the whole database entry, tail
+        and all. Removing lysozyme's signal peptide raised its mean pLDDT from
+        91.0 to 95.1.
       </li>
       <li><b>These are language model scores, not clinical predictions.</b> Reported ClinVar and gnomAD annotations, where shown, come from the EBI Proteins API and are a separate kind of evidence entirely.</li>
       <li>A predicted structure is a hypothesis. So is a language model's opinion. This app draws one on top of the other.</li>

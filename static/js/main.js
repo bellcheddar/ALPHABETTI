@@ -74,9 +74,21 @@ async function boot() {
   state.renderer.onAutoRotateChange((on) => {
     state.shared.autoRotate = on;
     dom.autoRotateToggle?.set(on);
+    // The on-canvas button reflects live state, including the transient pause
+    // while someone is dragging, so it always says what is actually happening.
+    if (dom.rotateButton) {
+      dom.rotateButton.setAttribute('aria-pressed', String(on));
+      dom.rotateButton.classList.toggle('off', !on);
+      dom.rotateButton.querySelector('span').textContent =
+        state.renderer._rotateOff ? 'paused' : (on ? 'rotating' : 'holding');
+    }
   });
 
   state.modeKey = initialMode();
+  // Test hook: lets an automated drag check whether the camera actually moved.
+  window.__ALPHA_CAMPOS = () => state.renderer.camera.position.toArray().map(v => +v.toFixed(3));
+  window.__ALPHA_CTRL = () => state.renderer.controls;
+  window.__ALPHA_R = () => state.renderer;
   wireInputs();
   wireTabs();
 
@@ -95,6 +107,8 @@ function cache(target) {
   target.submit = document.querySelector('[data-submit]');
   target.tabs = [...document.querySelectorAll('[data-tab]')];
   target.downloads = document.querySelector('[data-downloads]');
+  target.rotateButton = document.querySelector('[data-rotate-toggle]');
+  target.resetButton = document.querySelector('[data-reset-view]');
 }
 
 /* ------------------------------------------------------------------- data */
@@ -304,6 +318,24 @@ function wireInputs() {
   for (const button of document.querySelectorAll('[data-example]')) {
     button.addEventListener('click', () => loadExample(button.dataset.example));
   }
+  dom.rotateButton?.addEventListener('click', () => {
+    const on = state.renderer._rotateOff;   // currently off -> turn it on
+    state.renderer.setAutoRotate(on, state.shared.rotateSpeed);
+    state.shared.autoRotate = on;
+    dom.autoRotateToggle?.set(on);
+    dom.rotateButton.classList.toggle('off', !on);
+    dom.rotateButton.querySelector('span').textContent = on ? 'rotating' : 'paused';
+    dom.rotateButton.setAttribute('aria-pressed', String(on));
+  });
+  dom.resetButton?.addEventListener('click', () => state.renderer.resetCamera());
+
+  // Keyboard, so the two things people reach for most are one key away.
+  window.addEventListener('keydown', (event) => {
+    if (event.target.matches('input, textarea, select')) return;
+    if (event.key === 'r' || event.key === 'R') dom.rotateButton?.click();
+    if (event.key === '0') state.renderer.resetCamera();
+  });
+
   buildSharedControls();
 }
 

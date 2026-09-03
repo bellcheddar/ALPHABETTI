@@ -23,21 +23,30 @@
     <div class="slab-top">
       <h1 class="wordmark">ALPHABETTI</h1>
       <!-- The capitals spell the backronym, so this is never uppercased:
-           text-transform would delete the only place it is explained. -->
-      <p class="strapline">
+           text-transform would delete the only place it is explained.
+           Each <b> is a neon tube that strikes in turn; see .ignite in the CSS. -->
+      <p class="strapline ignite">
         <b>A</b>mino-acid <b>L</b>etters <b>P</b>lotted <b>H</b>elically
         <b>A</b>s <b>B</b>ackbone-<b>E</b>mbedded <b>T</b>ext <b>I</b>n 3<b>D</b>
       </p>
     </div>
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="gibberish" aria-selected="true">
-        GIBBERISH<span class="tab-sub">information content</span></button>
+        GIBBERISH<span class="tab-sub ignite"><b>G</b>lyph <b>I</b>nterface for
+        <b>B</b>its, <b>E</b>ntropy and <b>R</b>esidue <b>I</b>nformation in
+        <b>S</b>tructural <b>H</b>omology</span></button>
       <button class="tab" role="tab" data-tab="bumfluff" aria-selected="false">
-        BUMFLUFF<span class="tab-sub">solvent accessibility</span></button>
+        BUMFLUFF<span class="tab-sub ignite"><b>B</b>uried/<b>U</b>nburied
+        <b>M</b>apping of <b>F</b>onts, <b>L</b>etters, <b>U</b>ncovered
+        <b>F</b>aces and <b>F</b>olds</span></button>
       <button class="tab" role="tab" data-tab="balderdash" aria-selected="false">
-        BALDERDASH<span class="tab-sub">variant hotspots</span></button>
+        BALDERDASH<span class="tab-sub ignite"><b>B</b>ayesian <b>A</b>mino-acid
+        <b>L</b>etter <b>D</b>isplay of <b>E</b>stimated <b>R</b>esidue
+        <b>D</b>eviations <b>A</b>nd <b>S</b>ubstitution <b>H</b>otspots</span></button>
       <button class="tab" role="tab" data-tab="folderol" aria-selected="false">
-        FOLDEROL<span class="tab-sub">flat logo to fold</span></button>
+        FOLDEROL<span class="tab-sub ignite"><b>F</b>olding <b>O</b>f
+        <b>L</b>etters <b>D</b>isplayed <b>E</b>n <b>R</b>oute,
+        <b>O</b>rdered <b>L</b>inearly</span></button>
     </div>
   </div>
 </div>
@@ -50,6 +59,14 @@
         <span class="no-msa">no alignment used</span>
       </div>
       <div class="overlay overlay-legend" data-legend></div>
+      <!-- Always visible, on the canvas. The auto-rotate control used to live at
+           the bottom of the scrolling side panel, below the fold, which is no
+           use when a stray scroll has just paused the rotation. -->
+      <div class="viewport-controls">
+        <button class="vc" data-rotate-toggle aria-pressed="true"
+                title="Auto-rotate (R)">&#10227;<span>rotating</span></button>
+        <button class="vc" data-reset-view title="Reset the view (0)">&#8982;<span>reset</span></button>
+      </div>
       <div class="tooltip" data-tooltip></div>
       <div class="loading" data-loading hidden>
         <div class="loading-stage" data-loading-stage>starting</div>
@@ -106,4 +123,28 @@
 
 {% block scripts %}
 <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+// Temporary: ?selftest=1 reports whether the render loop is actually running.
+if (new URLSearchParams(location.search).has('selftest')) {
+  setTimeout(async () => {
+    const R = window.__ALPHA_R && window.__ALPHA_R();
+    const box = document.createElement('pre');
+    box.id = 'selftest';
+    box.style.cssText = 'position:fixed;left:0;top:0;z-index:9999;background:#000;color:#0f0;font:12px monospace;padding:8px';
+    document.body.appendChild(box);
+    if (!R) { box.textContent = 'no renderer'; return; }
+    const f0 = R.__frames || 0, p0 = window.__ALPHA_CAMPOS();
+    await new Promise(r => setTimeout(r, 1500));
+    const f1 = R.__frames || 0, p1 = window.__ALPHA_CAMPOS();
+    const moved = Math.hypot(p1[0]-p0[0], p1[1]-p0[1], p1[2]-p0[2]);
+    box.textContent = 'ticks: ' + (R.__ticks || 0) + '  frames: ' + (R.__frames || 0)
+      + '\nlastError: ' + (R.__lastError ? R.__lastError.message : 'none')
+      + '\nframes in 1.5s: ' + (f1-f0)
+      + '\nloop: ' + ((f1-f0) > 5 ? 'RUNNING' : 'NOT RUNNING')
+      + '\nautoRotate: ' + window.__ALPHA_CTRL().autoRotate
+      + '\ncamera moved: ' + moved.toFixed(3)
+      + ' -> ' + (moved > 0.5 ? 'SPINNING' : 'STUCK');
+  }, 3000);
+}
+</script>
 {% endblock %}

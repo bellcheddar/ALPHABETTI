@@ -34,12 +34,14 @@ from alphabetti.sequences import parse_input                # noqa: E402
 from config import get_config                               # noqa: E402
 
 EXAMPLES = {
-    # (accession, residue range or None). See app.py for why ubiquitin is a
-    # range: P0CG48 is a nine-copy tandem precursor, not the monomer.
+    # (accession, residue range). Ranges come from UniProt's Chain feature:
+    # the database sequence is the precursor, and folding it whole gives a
+    # nine-copy polyprotein (ubiquitin) or a disordered signal peptide hanging
+    # off the fold (lysozyme). See app.py for the full reasoning.
     "ubiquitin": ("P0CG48", (1, 76)),
-    "lysozyme": ("P00698", None),
-    "myoglobin": ("P02144", None),
-    "gfp": ("P42212", None),
+    "lysozyme": ("P00698", (19, 147)),
+    "myoglobin": ("P02144", (2, 154)),
+    "tim": ("P60174", (2, 249)),
 }
 
 
