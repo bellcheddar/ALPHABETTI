@@ -92,6 +92,7 @@ async function boot() {
   window.__ALPHA_CAMPOS = () => state.renderer.camera.position.toArray().map(v => +v.toFixed(3));
   window.__ALPHA_CTRL = () => state.renderer.control;
   window.__ALPHA_R = () => state.renderer;
+  window.__ALPHA_HOG = () => state.hogwash;
   // What this deployment can actually do with WebLogo, asked once.
   try {
     const capabilities = await (await fetch('/api/logo/capabilities')).json();
@@ -739,6 +740,18 @@ function buildHogwashControls(host, options, refresh) {
     value: options.columnSpacing, format: (v) => `${v.toFixed(1)} A`,
     onInput: (v) => { options.columnSpacing = v; refresh(); },
   });
+  if (options.layout === 'helix') {
+    slider(host, {
+      label: 'Turns', min: 1, max: 8, step: 0.5,
+      value: options.helixTurns, format: (v) => `${v}`,
+      onInput: (v) => { options.helixTurns = v; refresh(); },
+    });
+    slider(host, {
+      label: 'Rise per turn', min: 4, max: 40, step: 0.5,
+      value: options.helixRise, format: (v) => `${v.toFixed(1)} A`,
+      onInput: (v) => { options.helixRise = v; refresh(); },
+    });
+  }
   slider(host, {
     label: `Minimum ${options.unit_name}`, min: 0, max: 4.32, step: 0.05,
     value: options.minBits, format: (v) => v.toFixed(2),

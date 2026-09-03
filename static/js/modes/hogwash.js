@@ -62,6 +62,10 @@ export const DEFAULTS = {
 
   // ---- the 3D arrangement
   layout: 'helix',
+  // How many times the coil goes round, and how far it climbs per turn. Rise
+  // has to clear the tallest stack or consecutive turns grow through each other.
+  helixTurns: 3,
+  helixRise: 15,
   stackDepth: 5,
   bitsPerAngstrom: 2.2,
   minBits: 0.0,
@@ -171,18 +175,30 @@ export class Hogwash {
     // stacks do not overlap, rather than a fixed radius that crowds a long
     // alignment into itself.
     const wrap = layout === 'helix'
-      ? Math.min(total, Math.max(24, Math.ceil(total / 3)))
+      ? Math.min(total, Math.max(24, Math.ceil(total / this.options.helixTurns)))
       : total;
     const radius = Math.max(12, (wrap * columnSpacing) / (2 * Math.PI));
-    const angle = (index % wrap) / wrap * Math.PI * 2;
-    const turn = Math.floor(index / wrap);
+
+    // Turns as a CONTINUOUS fraction, not a floor.
+    //
+    // This used to be `angle = (index % wrap)` with `y = floor(index / wrap) *
+    // rise`, which is not a helix: it is a stack of flat rings that jump a whole
+    // turn's height at the seam and then sit level all the way round. Letting
+    // both the angle and the height run off the same unrounded value gives one
+    // continuous coil, and the seam disappears because there is no longer a
+    // seam to disappear.
+    const turned = index / wrap;
+    const totalTurns = total / wrap;
+    const angle = turned * Math.PI * 2;
 
     position.set(
       Math.sin(angle) * radius,
-      layout === 'helix' ? turn * 13 - (Math.ceil(total / wrap) - 1) * 6.5 : 0,
+      layout === 'helix'
+        ? (turned - totalTurns / 2) * this.options.helixRise
+        : 0,
       Math.cos(angle) * radius,
     );
-    // Face outward, so the letters read from outside the ring.
+    // Face outward, so the letters read from outside the coil.
     quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
     return { position, quaternion, up };
   }
@@ -278,13 +294,17 @@ export class Hogwash {
     // around has to be close enough to read, so the far side is allowed to fall
     // away behind the near one.
     const wrap = layout === 'helix'
-      ? Math.min(columns, Math.max(24, Math.ceil(columns / 3)))
+      ? Math.min(columns, Math.max(24, Math.ceil(columns / this.options.helixTurns)))
       : columns;
     const radius = Math.max(12, (wrap * columnSpacing) / (2 * Math.PI));
-    // Close enough that about a fifth of the circumference fills the view.
+    // Close enough that about a fifth of the circumference fills the view, but
+    // far enough that the whole climb of the coil is still in frame.
     const arc = Math.max(18, (wrap / 5) * columnSpacing);
     const comfortable = (arc / 2) / Math.tan(horizontal / 2);
-    return radius + Math.max(tall * 2.2, comfortable);
+    const climb = layout === 'helix'
+      ? ((columns / wrap) * this.options.helixRise + tall) / 2 / Math.tan(vertical / 2)
+      : 0;
+    return Math.max(radius + Math.max(tall * 2.2, comfortable), climb);
   }
 
   rulerColour(residue) {
