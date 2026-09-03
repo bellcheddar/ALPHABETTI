@@ -1,5 +1,7 @@
 # 🔤 ALPHABETTI
 
+**A**mino-acid **L**etters **P**lotted **H**elically **A**s **B**ackbone-**E**mbedded **T**ext in **T**hree-dimensions and **I**nteractive
+
 > **A protein sequence logo, in three dimensions, wrapped around its own predicted structure.**
 
 [![live](https://img.shields.io/badge/live-alphabetti.mdeller.com-00d084?logo=icloud&logoColor=white)](https://alphabetti.mdeller.com)

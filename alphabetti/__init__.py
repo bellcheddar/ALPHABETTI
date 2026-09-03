@@ -1,4 +1,5 @@
-"""ALPHABETTI: Amino-acid Letters Plotted Helically As Backbone-Embedded Text In 3D.
+"""ALPHABETTI: Amino-acid Letters Plotted Helically As Backbone-Embedded Text
+in Three-dimensions and Interactive.
 
 The package splits into three kinds of module, and the split is deliberate:
 

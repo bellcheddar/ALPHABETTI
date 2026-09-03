@@ -156,10 +156,21 @@ img, canvas, svg { max-width: 100%; }
    Never text-transform this: uppercasing it deletes the only place the
    acronym is spelled out. */
 .strapline {
-  font-size: 11.5px; line-height: 1.45; color: var(--ne-fg-faint);
-  padding-bottom: 4px; margin: 0; max-width: 46ch;
+  /* Sized against the wordmark rather than fixed, so the two stay in
+     proportion as the masthead scales. It carries the whole backronym, which
+     is the only place the name is explained, so it had been set too small to
+     be read at a glance. */
+  font-size: clamp(13px, 1.15vw, 16px);
+  line-height: 1.5;
+  color: var(--ne-fg-dim);
+  padding-bottom: 5px; margin: 0; max-width: 58ch;
 }
-.strapline b { color: var(--ne-cyan); font-weight: 700; }
+.strapline b {
+  color: var(--ne-cyan); font-weight: 700;
+  /* A shade larger again than the words around it, so the acronym reads out of
+     the sentence without needing the animation to have run. */
+  font-size: 1.08em;
+}
 
 .tabs { display: flex; gap: 2px; margin-top: 14px; flex-wrap: wrap; }
 .tab {
