@@ -80,6 +80,58 @@ def create_app(config: type[Config] | None = None) -> Flask:
     backend = make_backend(settings)
     runner = JobRunner(cache, backend, settings)
 
+    # Cache busting for everything the templates reference.
+    #
+    # nginx serves /static/ with a one-year immutable cache, which is right for
+    # a file whose URL changes when its contents do and catastrophic for one
+    # that does not: `immutable` tells the browser not to revalidate at all, so
+    # a deploy is invisible to every returning visitor until the year is up.
+    # That happened here -- several deploys in a row reached the server and
+    # nobody looking at the site could see any of them.
+    @app.template_global()
+    def asset(filename: str) -> str:
+        """A /static URL stamped with the file's modification time."""
+        path = Path(app.static_folder) / filename
+        try:
+            stamp = int(path.stat().st_mtime)
+        except OSError:
+            stamp = 0
+        return f"/static/{filename}?v={stamp}"
+
+    @app.template_global()
+    def module_map() -> str:
+        """Import-map entries pointing every local ES module at a stamped URL.
+
+        main.js can be cache-busted from the template, but it reaches its
+        siblings through relative specifiers -- `import { Renderer } from
+        './renderer.js'` -- and the browser builds those URLs itself, so a
+        template stamp never touches them.
+
+        An import map is the one place that can be fixed, because it sits in the
+        HTML, which is served no-cache. Mapping the resolved URL of each module
+        to a stamped one means the browser requests a URL it has never seen, so
+        a stale entry cannot be reused however it was cached. That matters here
+        beyond tidiness: these files were once served `immutable` for a year, so
+        browsers that saw that will not revalidate them at all, and without this
+        they would pair a fresh main.js with a year-old renderer.js.
+        """
+        import json as _json
+
+        from markupsafe import Markup
+
+        root = Path(app.static_folder) / "js"
+        imports = {}
+        for path in sorted(root.rglob("*.js")):
+            relative = path.relative_to(root).as_posix()
+            url = f"/static/js/{relative}"
+            imports[url] = f"{url}?v={int(path.stat().st_mtime)}"
+        # Markup, or Jinja escapes every quote to &#34; and the import map
+        # becomes invalid JSON. The browser then silently ignores the whole map
+        # and every module 404s on an unversioned URL, which is a far worse
+        # failure than the caching problem this exists to solve.
+        body = _json.dumps(imports, indent=6)[1:-1].strip()
+        return Markup(body)
+
     app.extensions["alphabetti"] = {
         "cache": cache, "backend": backend, "runner": runner, "settings": settings,
     }
