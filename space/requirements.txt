@@ -1,0 +1,9 @@
+# ZeroGPU images ship their own torch build; pinning torch here fights it.
+transformers==4.46.3
+accelerate==1.1.1
+numpy<2
+# ESMFold's structure module needs these two, and transformers does not pull
+# them in: without them from_pretrained raises an ImportError that names
+# openfold rather than either package.
+dm-tree==0.1.8
+biopython==1.84

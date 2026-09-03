@@ -1,0 +1,463 @@
+/* ==========================================================================
+   ALPHABETTI
+   Direction: Neon Signage (chosen 2026-09-03). See the note at the end of
+   this file for the reasoning and the registry entry.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&family=Archivo+Black&display=swap');
+
+:root {
+  /* --- Neon palette -----------------------------------------------------
+     Two tubes on a wet night: cyan is the primary and does the work, magenta
+     is reserved for things that are genuinely hot (BALDERDASH hotspots, error
+     states, the record dot). Spending magenta anywhere else would leave the
+     design with no way to shout. */
+  --ne-cyan:        #26f5e0;
+  --ne-cyan-dim:    #17b8a8;
+  --ne-cyan-glow:   rgba(38, 245, 224, 0.55);
+  --ne-magenta:     #ff2d9b;
+  --ne-magenta-dim: #c01f75;
+  --ne-magenta-glow: rgba(255, 45, 155, 0.5);
+  --ne-amber:       #fcb900;   /* the fixed house logo dot, unchanged */
+
+  /* Grounds. Not neutral grey: every one carries a blue-violet bias so the
+     cyan sits in the same world as the surfaces behind it. */
+  --ne-void:        #06060e;   /* the 3D canvas, darkest thing on the page */
+  --ne-bg:          #0d0d18;
+  --ne-panel:       #101020;
+  --ne-slab:        #121222;
+  --ne-raise:       #16162a;
+  --ne-edge:        #242640;
+  --ne-edge-bright: #33365c;
+
+  --ne-fg:          #e6e9f5;
+  --ne-fg-dim:      #99a1c0;
+  --ne-fg-faint:    #6b7398;
+
+  --ne-good:        #3ddc97;
+  --ne-warn:        #ffb44d;
+  --ne-bad:         #ff5470;
+
+  --ne-radius:      3px;       /* signage is cut metal, not rounded plastic */
+  --ne-radius-lg:   5px;
+  --ne-shadow:      0 2px 14px rgba(0, 0, 0, 0.55);
+
+  --ne-display: 'Archivo Black', Impact, 'Haettenschweiler', sans-serif;
+  --ne-body: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ne-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  color-scheme: dark;
+}
+
+/* This app commits to one visual world. A neon sign has no light mode; a
+   "light neon" would be a different design wearing this one's name. So there
+   is deliberately no prefers-color-scheme block, and every colour below is
+   painted explicitly so the page holds on any host ground. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--ne-bg);
+  color: var(--ne-fg);
+  font-family: var(--ne-body);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+
+a { color: var(--ne-cyan); }
+a:focus-visible, button:focus-visible, select:focus-visible,
+input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--ne-cyan);
+  outline-offset: 2px;
+}
+
+img, canvas, svg { max-width: 100%; }
+
+/* ==========================================================================
+   Brand header. Structure and both links are the house standard and fixed;
+   the colours are the app's own, so it reads as part of this page rather than
+   a strip of another site pasted on top.
+   ========================================================================== */
+
+.md-header {
+  background: linear-gradient(135deg, #07070f 0%, #14142a 100%);
+  border-bottom: 1px solid var(--ne-edge);
+  color: var(--ne-fg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.md-header-inner {
+  max-width: 1600px; margin: 0 auto; padding: 9px 20px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.md-header-brand a {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--ne-fg-dim); text-decoration: none;
+  font-weight: 600; font-size: 12.5px; letter-spacing: 0.02em; white-space: nowrap;
+  transition: color 0.2s;
+}
+.md-header-brand a:hover { color: var(--ne-fg); }
+.md-logo-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--ne-amber);
+  box-shadow: 0 0 8px rgba(252, 185, 0, 0.7);
+  flex: none;
+}
+.md-header-spacer { flex: 1; }
+.md-header-links { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+.md-header-links a {
+  color: var(--ne-fg-dim); text-decoration: none; font-size: 11.5px;
+  padding: 3px 11px; border: 1px solid var(--ne-edge-bright); border-radius: 20px;
+  transition: all 0.2s; white-space: nowrap;
+}
+.md-header-links a:hover {
+  background: rgba(38, 245, 224, 0.1); color: var(--ne-cyan);
+  border-color: var(--ne-cyan-dim);
+}
+
+/* ==========================================================================
+   Masthead and tabs: ONE slab, no internal seams. Three stacked bands with
+   three backgrounds is the failure this avoids.
+   ========================================================================== */
+
+.slab {
+  background: var(--ne-slab);
+  border-bottom: 1px solid var(--ne-edge);
+  padding: 16px 20px 0;
+}
+.slab-inner { max-width: 1600px; margin: 0 auto; }
+.slab-top {
+  display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
+}
+/* The wordmark is a neon tube: the glow is the design, so it is real text with
+   a layered text-shadow rather than an image. */
+.wordmark {
+  font-family: var(--ne-display);
+  font-size: clamp(26px, 4.4vw, 40px);
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  margin: 0;
+  color: #eafffb;
+  text-shadow:
+    0 0 4px #fff,
+    0 0 11px var(--ne-cyan-glow),
+    0 0 28px var(--ne-cyan-glow),
+    0 0 54px rgba(38, 245, 224, 0.25);
+}
+/* The strapline explains the backronym, so its capitals carry meaning.
+   Never text-transform this: uppercasing it deletes the only place the
+   acronym is spelled out. */
+.strapline {
+  font-size: 11.5px; line-height: 1.45; color: var(--ne-fg-faint);
+  padding-bottom: 4px; margin: 0; max-width: 46ch;
+}
+.strapline b { color: var(--ne-cyan); font-weight: 700; }
+
+.tabs { display: flex; gap: 2px; margin-top: 14px; flex-wrap: wrap; }
+.tab {
+  font-family: var(--ne-mono); font-size: 10.5px; letter-spacing: 0.12em;
+  padding: 9px 15px; color: var(--ne-fg-faint); background: transparent;
+  border: 1px solid transparent; border-bottom: none; cursor: pointer;
+  border-radius: var(--ne-radius) var(--ne-radius) 0 0;
+  transition: color 0.15s, background 0.15s;
+}
+.tab:hover { color: var(--ne-fg-dim); background: rgba(255, 255, 255, 0.03); }
+.tab[aria-selected="true"] {
+  background: var(--ne-bg); color: var(--ne-cyan); font-weight: 700;
+  border-color: var(--ne-edge); border-bottom-color: var(--ne-bg);
+  margin-bottom: -1px;
+  text-shadow: 0 0 10px var(--ne-cyan-glow);
+}
+.tab-sub {
+  display: block; font-size: 8.5px; letter-spacing: 0.06em;
+  color: var(--ne-fg-faint); margin-top: 2px; font-weight: 400;
+}
+.tab[aria-selected="true"] .tab-sub { color: var(--ne-cyan-dim); text-shadow: none; }
+
+/* ==========================================================================
+   Layout: canvas left, controls right, ruler beneath. Below 900px the panel
+   becomes a bottom sheet.
+   ========================================================================== */
+
+.app-main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.stage {
+  flex: 1; display: grid; grid-template-columns: 1fr 300px;
+  min-height: 0; max-width: 1600px; width: 100%; margin: 0 auto;
+}
+
+.viewport { position: relative; background: var(--ne-void); min-height: 380px; }
+.viewport canvas { display: block; width: 100%; height: 100%; }
+
+.overlay {
+  position: absolute; pointer-events: none;
+  font-family: var(--ne-mono); font-size: 10px; letter-spacing: 0.04em;
+  color: var(--ne-fg-faint); line-height: 1.65;
+}
+.overlay b { color: var(--ne-fg-dim); font-weight: 500; }
+.overlay-legend { left: 14px; bottom: 12px; }
+.overlay-models { right: 14px; top: 12px; text-align: right; }
+.overlay-models .no-msa {
+  color: var(--ne-cyan); text-shadow: 0 0 9px var(--ne-cyan-glow);
+}
+
+.tooltip {
+  position: absolute; pointer-events: none; z-index: 20;
+  background: rgba(8, 8, 18, 0.94);
+  border: 1px solid var(--ne-edge-bright);
+  border-left: 2px solid var(--ne-cyan);
+  padding: 8px 11px; font-family: var(--ne-mono); font-size: 10.5px;
+  line-height: 1.7; color: var(--ne-fg); white-space: nowrap;
+  box-shadow: var(--ne-shadow); opacity: 0; transition: opacity 0.12s;
+}
+.tooltip.on { opacity: 1; }
+.tooltip .k { color: var(--ne-fg-faint); }
+.tooltip .aa {
+  font-family: var(--ne-display); font-size: 15px; color: var(--ne-cyan);
+  text-shadow: 0 0 10px var(--ne-cyan-glow); letter-spacing: 0.04em;
+}
+
+/* ---- control panel ---- */
+.panel {
+  background: var(--ne-panel); border-left: 1px solid var(--ne-edge);
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+.panel-section { padding: 13px 15px; border-bottom: 1px solid var(--ne-edge); }
+.panel-section:last-child { border-bottom: none; }
+
+.label {
+  font-family: var(--ne-mono); font-size: 9px; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--ne-fg-faint);
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+}
+.label .value {
+  color: var(--ne-cyan); font-size: 10.5px; letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.field { margin-top: 11px; }
+.field:first-child { margin-top: 0; }
+
+input[type="range"] {
+  width: 100%; margin: 7px 0 0; height: 3px; -webkit-appearance: none;
+  appearance: none; background: var(--ne-edge-bright); border-radius: 2px;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--ne-cyan); border: none; cursor: pointer;
+  box-shadow: 0 0 9px var(--ne-cyan-glow);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 13px; height: 13px; border-radius: 50%; background: var(--ne-cyan);
+  border: none; cursor: pointer; box-shadow: 0 0 9px var(--ne-cyan-glow);
+}
+
+select, input[type="text"], textarea {
+  width: 100%; background: var(--ne-raise); color: var(--ne-fg);
+  border: 1px solid var(--ne-edge-bright); border-radius: var(--ne-radius);
+  padding: 7px 9px; font-family: var(--ne-body); font-size: 12.5px;
+  margin-top: 6px;
+}
+textarea { font-family: var(--ne-mono); font-size: 12px; resize: vertical; line-height: 1.5; }
+select:hover, input[type="text"]:hover, textarea:hover { border-color: var(--ne-cyan-dim); }
+
+.switch { display: flex; align-items: center; gap: 9px; cursor: pointer; margin-top: 10px; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .track {
+  width: 30px; height: 16px; background: var(--ne-edge-bright);
+  border-radius: 10px; position: relative; flex: none; transition: background 0.18s;
+}
+.switch .track::after {
+  content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--ne-fg-faint); transition: all 0.18s;
+}
+.switch input:checked + .track { background: rgba(38, 245, 224, 0.28); }
+.switch input:checked + .track::after {
+  left: 16px; background: var(--ne-cyan); box-shadow: 0 0 8px var(--ne-cyan-glow);
+}
+.switch input:focus-visible + .track { outline: 2px solid var(--ne-cyan); outline-offset: 2px; }
+.switch span:last-child { font-size: 12px; color: var(--ne-fg-dim); }
+
+.button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  background: transparent; color: var(--ne-cyan);
+  border: 1px solid var(--ne-cyan-dim); border-radius: var(--ne-radius);
+  padding: 7px 13px; font-family: var(--ne-mono); font-size: 10.5px;
+  letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+  text-decoration: none; transition: all 0.16s;
+}
+.button:hover {
+  background: rgba(38, 245, 224, 0.12); border-color: var(--ne-cyan);
+  box-shadow: 0 0 14px rgba(38, 245, 224, 0.25);
+}
+.button.primary {
+  background: var(--ne-cyan); color: #04121a; border-color: var(--ne-cyan);
+  font-weight: 700; box-shadow: 0 0 16px var(--ne-cyan-glow);
+}
+.button.primary:hover { background: #4dfbe8; box-shadow: 0 0 24px var(--ne-cyan-glow); }
+.button:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+.button-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+/* ---- stat tiles ---- */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--ne-edge); }
+.stat { background: var(--ne-panel); padding: 8px 10px; }
+.stat b {
+  display: block; font-family: var(--ne-mono); font-size: 16px; font-weight: 700;
+  color: var(--ne-cyan); line-height: 1.2; font-variant-numeric: tabular-nums;
+}
+.stat span {
+  font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ne-fg-faint);
+}
+.stat.wide { grid-column: 1 / -1; }
+.stat.wide b { font-size: 12px; letter-spacing: 0.01em; }
+
+/* ---- sequence ruler ---- */
+.ruler {
+  border-top: 1px solid var(--ne-edge); background: var(--ne-panel);
+  padding: 8px 16px 10px; flex: none;
+}
+.ruler-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
+}
+.ruler-title {
+  font-family: var(--ne-mono); font-size: 9px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ne-fg-faint);
+}
+.ruler-scroll { overflow-x: auto; padding-bottom: 3px; }
+.ruler-track { display: inline-flex; flex-direction: column; min-width: 100%; }
+.ruler-ticks {
+  display: flex; font-family: var(--ne-mono); font-size: 8px;
+  color: var(--ne-fg-faint); height: 11px;
+}
+.ruler-seq { display: flex; font-family: var(--ne-mono); font-size: 12px; line-height: 1.35; }
+.ruler-res {
+  width: 11px; text-align: center; cursor: pointer; flex: none;
+  border-bottom: 2px solid transparent; transition: background 0.1s;
+}
+.ruler-res:hover { background: rgba(38, 245, 224, 0.18); }
+.ruler-res.active {
+  background: var(--ne-cyan); color: #04121a; font-weight: 700;
+  border-bottom-color: var(--ne-cyan);
+}
+
+/* ==========================================================================
+   Loading. ESMFold grinds for a while and a bare spinner would be a lie about
+   how long. This says what is happening and how long it has been happening.
+   ========================================================================== */
+
+.loading {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+  background: rgba(6, 6, 14, 0.9); z-index: 30; text-align: center; padding: 24px;
+}
+.loading[hidden] { display: none; }
+.loading-stage {
+  font-family: var(--ne-mono); font-size: 13px; color: var(--ne-cyan);
+  letter-spacing: 0.05em; text-shadow: 0 0 12px var(--ne-cyan-glow);
+  min-height: 1.5em;
+}
+.loading-meta { font-family: var(--ne-mono); font-size: 10.5px; color: var(--ne-fg-faint); }
+.loading-bar {
+  width: min(320px, 70vw); height: 2px; background: var(--ne-edge-bright);
+  overflow: hidden; position: relative;
+}
+.loading-bar::after {
+  content: ""; position: absolute; inset: 0; width: 34%;
+  background: linear-gradient(90deg, transparent, var(--ne-cyan), transparent);
+  animation: sweep 1.5s ease-in-out infinite;
+}
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(320%); } }
+@media (prefers-reduced-motion: reduce) {
+  .loading-bar::after { animation: none; width: 100%; opacity: 0.4; }
+}
+
+/* ---- messages ---- */
+.message {
+  margin: 10px 0 0; padding: 10px 12px; font-size: 12.5px; line-height: 1.55;
+  border-left: 2px solid var(--ne-cyan); background: rgba(38, 245, 224, 0.07);
+  color: var(--ne-fg-dim); border-radius: 0 var(--ne-radius) var(--ne-radius) 0;
+}
+.message.error { border-left-color: var(--ne-bad); background: rgba(255, 84, 112, 0.09); }
+.message.warn { border-left-color: var(--ne-warn); background: rgba(255, 180, 77, 0.08); }
+.message b { color: var(--ne-fg); }
+.message .button { margin-top: 8px; }
+
+.empty-state { text-align: center; padding: 60px 24px; color: var(--ne-fg-dim); }
+.empty-state h2 { font-family: var(--ne-display); color: var(--ne-fg); }
+
+/* ---- footer ---- */
+.md-footer {
+  text-align: center; padding: 14px 20px; color: var(--ne-fg-faint);
+  font-size: 12px; border-top: 1px solid var(--ne-edge); background: var(--ne-slab);
+  flex: none;
+}
+.md-footer a { color: var(--ne-cyan-dim); text-decoration: none; }
+.md-footer a:hover { color: var(--ne-cyan); }
+
+/* ==========================================================================
+   Mobile. Below 900px the panel becomes a bottom sheet; the canvas keeps the
+   room, because the canvas is the product.
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .stage { grid-template-columns: 1fr; }
+  .viewport { min-height: 52vh; }
+  .panel {
+    border-left: none; border-top: 1px solid var(--ne-edge);
+    max-height: 42vh; position: relative;
+  }
+  .panel::before {
+    content: ""; display: block; width: 34px; height: 3px; border-radius: 2px;
+    background: var(--ne-edge-bright); margin: 7px auto 0;
+  }
+}
+@media (max-width: 600px) {
+  .md-logo-text { display: none; }
+  .md-header-links a { font-size: 10.5px; padding: 3px 8px; }
+  .slab { padding: 12px 14px 0; }
+  .strapline { display: none; }
+  .tab { padding: 8px 10px; font-size: 9.5px; }
+  .tab-sub { display: none; }
+  .ruler { padding: 7px 12px 9px; }
+}
+
+/* ==========================================================================
+   DIRECTION NOTE
+
+   Neon Signage, chosen by Marc on 2026-09-03 from five candidates rendered as
+   working previews of this app.
+
+   Why it suits ALPHABETTI specifically. The build spec says the letters should
+   catch the light as they rotate and that "that specular glint is most of the
+   appeal". Every other direction treated that as a lighting problem to solve.
+   This one makes it the subject: the letters emit rather than reflect, which
+   turns BALDERDASH's requirement for hotspots that "genuinely appear to light
+   up" from an effect bolted onto the renderer into the thing the whole design
+   is already about. It also settles the spec's open question about a dark
+   canvas by removing it, since a neon sign has no light mode.
+
+   Palette discipline. Cyan does all the ordinary work. Magenta is held back
+   for things that are actually hot: BALDERDASH hotspots, errors, recording.
+   Spending it anywhere else would leave the design with nothing louder to
+   reach for. The amber logo dot is the one fixed house mark and stays.
+
+   Registry (apps must not converge):
+     AlphaFraud  blue-on-white cards, Plotly-forward
+     FlexAppeal  light, card-based
+     BoltzMaker  light, card-based
+     PANTS       Diffraction: dark lattice, blue/violet, matte
+     ALPHABETTI  Neon Signage: near-black, emissive cyan/magenta, Archivo Black
+
+   PANTS is the only other dark one and is deliberately different: matte,
+   cool, and blue-violet, where this is saturated, emissive and cyan-led.
+   ========================================================================== */

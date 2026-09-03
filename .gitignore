@@ -1,0 +1,16 @@
+# Exported session transcripts: /export writes them into the repo.
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.txt
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local runtime state: the cache database and any folded structures.
+instance/
+*.sqlite
+*.sqlite-journal
+
+# Secrets. .env.example is committed, .env never is.
+.env
