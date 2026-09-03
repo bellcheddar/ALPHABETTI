@@ -178,5 +178,12 @@ def build(
             "ss_method": ss_method,
             "cached": False,
         },
-        "notes": list(result.notes),
+        # Two different kinds of thing, kept apart because the UI treats them
+        # differently. `notes` is addressed to the user and describes something
+        # that happened to THEIR input (a truncation, a stripped gap, an X).
+        # `provenance` describes how the result was computed and belongs in the
+        # info panel, not in a warning box. Mixing them meant every single fold
+        # showed two amber warnings saying nothing was wrong.
+        "notes": [],
+        "provenance": list(result.notes),
     }

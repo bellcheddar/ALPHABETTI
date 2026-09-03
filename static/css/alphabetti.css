@@ -461,3 +461,48 @@ select:hover, input[type="text"]:hover, textarea:hover { border-color: var(--ne-
    PANTS is the only other dark one and is deliberately different: matte,
    cool, and blue-violet, where this is saturated, emissive and cyan-led.
    ========================================================================== */
+
+/* ==========================================================================
+   Prose pages (About, 404). Narrow measure, because the app's own layout is
+   edge-to-edge and running text at that width is unreadable.
+   ========================================================================== */
+
+.prose { padding: 28px 20px 48px; }
+.prose-inner { max-width: 72ch; margin: 0 auto; }
+.prose h2 {
+  font-family: var(--ne-display); font-size: 17px; letter-spacing: 0.01em;
+  color: var(--ne-cyan); margin: 34px 0 10px;
+  text-shadow: 0 0 12px var(--ne-cyan-glow);
+}
+.prose h2:first-child { margin-top: 0; }
+.prose p, .prose li { color: var(--ne-fg-dim); }
+.prose b { color: var(--ne-fg); }
+.prose ul { padding-left: 20px; }
+.prose li { margin-bottom: 9px; }
+.prose pre {
+  background: var(--ne-panel); border: 1px solid var(--ne-edge);
+  border-left: 2px solid var(--ne-cyan); padding: 12px 14px; overflow-x: auto;
+  font-family: var(--ne-mono); font-size: 12px; color: var(--ne-fg);
+  line-height: 1.7;
+}
+.prose code {
+  font-family: var(--ne-mono); font-size: 0.9em; color: var(--ne-cyan);
+  background: rgba(38, 245, 224, 0.08); padding: 1px 5px; border-radius: 2px;
+}
+.prose .tab { text-decoration: none; }
+
+table.data {
+  width: 100%; border-collapse: collapse; margin: 14px 0 6px;
+  font-size: 13px; display: block; overflow-x: auto;
+}
+table.data th, table.data td {
+  text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--ne-edge);
+  vertical-align: top;
+}
+table.data th {
+  font-family: var(--ne-mono); font-size: 9.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ne-fg-faint); font-weight: 400;
+  white-space: nowrap;
+}
+table.data td { color: var(--ne-fg-dim); }
+table.data tbody tr:hover { background: rgba(255, 255, 255, 0.02); }

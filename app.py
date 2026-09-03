@@ -134,7 +134,7 @@ def create_app(config: type[Config] | None = None) -> Flask:
         result_id = sequence_id(parsed.sequence)
         cached = cache.get(result_id)
         if cached is not None:
-            cached["notes"] = list(parsed.notes) + cached.get("notes", [])
+            cached["notes"] = list(parsed.notes)
             return _gzipped(cached, {"cached": True})
 
         if not backend.can_fold:

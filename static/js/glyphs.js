@@ -54,7 +54,22 @@ export class GlyphSet {
 
     for (const character of ALPHABET + UNKNOWN) {
       const geometry = this._raw(character);
+
+      // Every glyph is normalised to the SAME box: one unit wide and one unit
+      // tall. Height uses a shared cap height so the letters sit on a common
+      // baseline and cap line; width is normalised per glyph, which stretches
+      // I and L out to the width of W.
+      //
+      // That is not a liberty, it is what a sequence logo is. WebLogo sets
+      // every letter to a uniform width so that a column reads as a column.
+      // Normalising height alone leaves the narrow letters as 8:1 needles that
+      // cannot be identified at all, which is exactly how the first render
+      // looked: a fistful of coloured splinters.
       geometry.scale(scale, scale, scale);
+      geometry.computeBoundingBox();
+      const natural = geometry.boundingBox.max.x - geometry.boundingBox.min.x;
+      if (natural > 1e-6) geometry.scale(NOMINAL_CAP_HEIGHT / natural, 1, 1);
+
       geometry.computeBoundingBox();
       const box = geometry.boundingBox;
 

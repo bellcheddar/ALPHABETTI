@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest==8.3.4
+fonttools==4.55.3     # scripts/make_typeface.py, scripts/make_icon.py
+pillow==11.1.0        # screenshot verification
+huggingface_hub>=0.26 # scripts/prewarm.py talks to the Space

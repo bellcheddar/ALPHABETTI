@@ -1,0 +1,15 @@
+# ALPHABETTI, web tier. Deliberately light: this process never imports torch,
+# never loads a model and never folds anything. See config.py for why.
+Flask==3.1.3
+gunicorn==23.0.0
+requests==2.32.5
+numpy==2.5.2
+biopython==1.88
+freesasa==2.2.1
+
+# Optional, and only for the `local` fold backend used to bulk pre-warm the
+# cache from a machine that has the weights and about 16 GB of memory. NOT
+# needed on the droplet, and installing it there would be a mistake.
+#   torch>=2.4
+#   transformers==4.46.3
+#   accelerate

@@ -1,0 +1,44 @@
+# systemd unit for ALPHABETTI (gunicorn behind nginx).
+# Installed to /etc/systemd/system/alphabetti-web.service by provision.sh.
+#
+# There is deliberately no second unit for a worker. The build brief specified
+# RQ and Redis, but the models live on a Hugging Face ZeroGPU Space, so there is
+# nothing for a worker process to hold: a job spends its whole life waiting on
+# one HTTPS request. Job state is in SQLite so both gunicorn workers can see it.
+
+[Unit]
+Description=ALPHABETTI web app (gunicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=alphabetti
+Group=alphabetti
+WorkingDirectory=/opt/alphabetti
+EnvironmentFile=-/opt/alphabetti/.env
+RuntimeDirectory=alphabetti
+RuntimeDirectoryMode=0770
+ExecStart=/opt/alphabetti/.venv/bin/gunicorn --config /opt/alphabetti/deploy/gunicorn.conf.py wsgi:app
+Restart=on-failure
+RestartSec=3
+# Back off rather than hammering a box that is already unhappy.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/alphabetti/instance
+
+# A cgroup backstop. This app is light by design (no torch, no models), so if it
+# ever approaches this it has a bug, and it must not take AlphaFraud, BoltzMaker,
+# chatPDB, ChemSage, CODSWALLOP, FlexAppeal, ButtFold and PANTS down with it.
+MemoryMax=420M
+MemoryHigh=340M
+CPUWeight=60
+
+[Install]
+WantedBy=multi-user.target

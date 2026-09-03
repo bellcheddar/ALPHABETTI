@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}ALPHABETTI{% endblock %} | Marc C. Deller</title>
+  <meta name="description" content="ALPHABETTI renders a protein sequence as a rotatable three-dimensional sequence logo: the amino acid letters themselves, positioned and oriented along an ESMFold-predicted backbone, with heights in bits of information content. No multiple sequence alignment anywhere in the pipeline.">
+  <meta name="author" content="Marc C. Deller, D.Phil.">
+  <meta property="og:title" content="ALPHABETTI">
+  <meta property="og:description" content="A protein sequence logo, in 3D, wrapped around its own predicted structure.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="{{ url_for('static', filename='img/og.png') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/icon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/alphabetti.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body{% block bodyattrs %}{% endblock %}>
+
+<header class="md-header">
+  <div class="md-header-inner">
+    <div class="md-header-brand">
+      <a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">
+        <span class="md-logo-dot"></span>
+        <span class="md-logo-text">Marc C. Deller, D.Phil.</span>
+      </a>
+    </div>
+    <div class="md-header-spacer"></div>
+    <div class="md-header-links">
+      <a href="/">App</a>
+      <a href="/about">About</a>
+      <a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">marcdeller.com</a>
+      <a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a>
+    </div>
+  </div>
+</header>
+
+{% block content %}{% endblock %}
+
+<footer class="md-footer">
+  Built by <a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">Marc C. Deller, D.Phil.</a>
+  · <a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a>
+  · v{{ version }}
+</footer>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

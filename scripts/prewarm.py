@@ -75,7 +75,7 @@ def main(names: list[str]) -> None:
             original_length=parsed.original_length,
             result_id=sequence_id(parsed.sequence),
         )
-        payload["notes"] = list(parsed.notes) + payload.get("notes", [])
+        payload["notes"] = list(parsed.notes)
 
         (out_dir / f"{name}.json").write_text(
             json.dumps(payload, separators=(",", ":")))

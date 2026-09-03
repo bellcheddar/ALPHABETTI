@@ -103,7 +103,7 @@ class JobRunner:
                 original_length=parsed.original_length,
                 result_id=result_id,
             )
-            payload["notes"] = list(parsed.notes) + payload.get("notes", [])
+            payload["notes"] = list(parsed.notes)
 
             self._stage(job_id, "assembling")
             self.cache.put(result_id, parsed.sequence, payload, fold.pdb)
