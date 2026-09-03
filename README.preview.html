@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+.emd { color:#111111; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+  font-size:clamp(16px,1rem + 0.2vw,18px); line-height:1.7; overflow-wrap:anywhere; width:100%; max-width:none; }
+.emd *,.emd *::before,.emd *::after { box-sizing:border-box; }
+.emd h1,.emd h2,.emd h3,.emd h4,.emd h5,.emd h6 { line-height:1.2; margin:1.4em 0 0.6em; overflow-wrap:anywhere; }
+.emd h1 { font-size:clamp(2rem,1.5rem + 2.4vw,2.75rem); margin-top:0.2em; }
+.emd h1 img { vertical-align:middle; margin-right:0.4rem; }
+.emd h2 { font-size:clamp(1.5rem,1.25rem + 1.4vw,2rem); border-bottom:1px solid #e5e7eb; padding-bottom:0.3em; }
+.emd h3 { font-size:clamp(1.2rem,1.05rem + 0.9vw,1.5rem); }
+.emd p,.emd li,.emd blockquote,.emd pre { max-width:none; }
+.emd p,.emd ul,.emd ol,.emd blockquote,.emd pre,.emd table,.emd .emd-table-wrap,.emd hr { margin:0 0 1rem; }
+.emd ul,.emd ol { padding-left:1.4rem; }
+.emd ul.emd-tasklist { list-style:none; padding-left:0.2rem; }
+.emd ul.emd-tasklist li { margin:0.15rem 0; }
+.emd a { color:#467FF7; text-decoration:none; overflow-wrap:anywhere; }
+.emd a:hover { text-decoration:underline; }
+.emd img { max-width:100%; height:auto; }
+.emd p img { vertical-align:middle; }
+.emd pre,.emd code { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; }
+.emd code { background:#f6f8fa; padding:0.15em 0.35em; border-radius:6px; overflow-wrap:anywhere; }
+.emd pre { background:#f6f8fa; padding:1rem; overflow-x:auto; border-radius:10px; border:1px solid #e5e7eb; }
+.emd pre code { background:transparent; padding:0; overflow-wrap:normal; }
+.emd blockquote { padding:0.2rem 1rem; border-left:4px solid #467FF7; color:#555555; }
+.emd hr { border:0; border-top:1px solid #e5e7eb; }
+.emd .emd-table-wrap { width:100%; overflow-x:auto; }
+.emd table { width:100%; border-collapse:collapse; border-spacing:0; font-size:0.95rem; }
+.emd th,.emd td { border:1px solid #e5e7eb; padding:0.7rem 0.8rem; text-align:left; vertical-align:top; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
+.emd th { font-weight:700; }
+.emd .emd-data-table { table-layout:fixed; }
+.emd .emd-info-table { width:auto; max-width:100%; }
+.emd .emd-info-table th,.emd .emd-info-table td { border:0; padding:0.25rem 0.5rem; }
+@media (max-width:767px){
+  .emd { font-size:16px; line-height:1.65; }
+  .emd .emd-table-wrap { overflow-x:visible; }
+  .emd .emd-data-table,.emd .emd-data-table tbody,.emd .emd-data-table tr,.emd .emd-data-table td { display:block !important; width:100% !important; }
+  .emd .emd-data-table thead,.emd .emd-data-table th { display:none !important; }
+  .emd .emd-data-table { font-size:0.84rem; border:0; }
+  .emd .emd-data-table tr { margin:0 0 0.8rem; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; background:#ffffff; }
+  .emd .emd-data-table td { border:0; border-top:1px solid #e5e7eb; padding:0.45rem 0.7rem; line-height:1.35; }
+  .emd .emd-data-table tr td:first-child { border-top:0; }
+  .emd .emd-data-table td::before { content:attr(data-label); display:block; font-size:0.7rem; line-height:1.2; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#555555; margin-bottom:0.2rem; }
+  .emd .emd-data-table td[data-label=""]::before { content:none; }
+  .emd .emd-info-table,.emd .emd-info-table tbody,.emd .emd-info-table tr { display:block; }
+  .emd .emd-info-table td { display:inline-block; width:auto; padding:0.15rem 0.4rem 0.15rem 0; }
+}
+
+</style>
+</head>
+<body>
+<div class="emd">
+<h1>🔤 ALPHABETTI</h1>
+<blockquote>
+<p><strong>A protein sequence logo, in three dimensions, wrapped around its own predicted structure.</strong></p>
+</blockquote>
+<p><a href="https://alphabetti.mdeller.com"><img alt="live" src="https://img.shields.io/badge/live-alphabetti.mdeller.com-00d084?logo=icloud&amp;logoColor=white"></a> <img alt="python" src="https://img.shields.io/badge/python-3.12.3-3776AB?logo=python&amp;logoColor=white"> <img alt="flask" src="https://img.shields.io/badge/flask-3.1.3-000000?logo=flask&amp;logoColor=white"> <img alt="gunicorn" src="https://img.shields.io/badge/gunicorn-26.2.0-499848?logo=gunicorn&amp;logoColor=white"> <img alt="nginx" src="https://img.shields.io/badge/nginx-1.24.0-009639?logo=nginx&amp;logoColor=white"> <img alt="sqlite" src="https://img.shields.io/badge/sqlite-3-003B57?logo=sqlite&amp;logoColor=white"> <img alt="three.js" src="https://img.shields.io/badge/three.js-r169-000000?logo=threedotjs&amp;logoColor=white"> <img alt="esmfold" src="https://img.shields.io/badge/ESMFold-esmfold__v1-FF6F00"> <img alt="esm2" src="https://img.shields.io/badge/ESM--2-650M-FF6F00"> <img alt="zerogpu" src="https://img.shields.io/badge/HuggingFace-ZeroGPU-FFD21E?logo=huggingface&amp;logoColor=black"> <img alt="biopython" src="https://img.shields.io/badge/biopython-1.88-2D6B8E"> <img alt="numpy" src="https://img.shields.io/badge/numpy-2.5.2-013243?logo=numpy&amp;logoColor=white"> <img alt="freesasa" src="https://img.shields.io/badge/freesasa-2.2.1-5B8FA8"> <img alt="dssp" src="https://img.shields.io/badge/DSSP-P--SEA%20fallback-7A5AA8"> <img alt="tests" src="https://img.shields.io/badge/pytest-47%20passing-0A9EDC?logo=pytest&amp;logoColor=white"> <img alt="data" src="https://img.shields.io/badge/data-UniProt%20·%20RCSB%20·%20EBI%20Proteins-4B8BBE"> <img alt="phase" src="https://img.shields.io/badge/phase-v1.0.0-467FF7"> <img alt="licence" src="https://img.shields.io/badge/licence-MIT-lightgrey"> <img alt="author" src="https://img.shields.io/badge/author-Marc%20C.%20Deller%2C%20D.Phil.-1C244B"></p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="">🌐 <strong>App</strong></td>
+<td data-label=""><a href="https://alphabetti.mdeller.com">alphabetti.mdeller.com</a></td>
+</tr>
+<tr>
+<td data-label="">🧬 <strong>Fold service</strong></td>
+<td data-label=""><a href="https://huggingface.co/spaces/Dellboy/alphabetti-fold">Dellboy/alphabetti-fold</a> on Hugging Face ZeroGPU</td>
+</tr>
+<tr>
+<td data-label="">✉️ <strong>Contact</strong></td>
+<td data-label=""><a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a></td>
+</tr>
+<tr>
+<td data-label="">👤 <strong>Author</strong></td>
+<td data-label="">Marc C. Deller, D.Phil.</td>
+</tr>
+</tbody>
+</table></div>
+<p><img alt="ALPHABETTI showing ubiquitin in GIBBERISH mode: amino acid letters stacked along the predicted backbone, their heights proportional to information content in bits, coloured by residue chemistry against a dark ground" src="docs/screenshots/gibberish.png"></p>
+<p><strong>ALPHABETTI</strong> draws a protein's own single-letter amino acid codes in 3D, positioned and oriented along an ESMFold-predicted backbone. Instead of a cartoon or a stick model, you get the letters themselves: stacked at each position by how strongly a protein language model expects them, tallest at the bottom, standing on the side chain.</p>
+<p><strong>Why it matters:</strong> a conventional sequence logo tells you which positions are conserved, but it does so on a flat strip that has been divorced from the structure, and it gets there through a multiple sequence alignment, inheriting every bias in the search-align-trim pipeline that produced it. ALPHABETTI has <strong>no alignment anywhere</strong>: it asks ESM-2 what it expects at each position, having first masked that position so the model cannot read the answer off its own input, and then wraps the answer onto the fold. Conserved buried core positions become tall single-letter towers, tolerant surface positions splay into short scruffy stacks, and helices read as spiral staircases of text. It is useful for: seeing at a glance which parts of a fold a model considers load-bearing, spotting exposed hydrophobic patches that drive aggregation or block crystallisation, finding positions where the wild-type residue is one the model would not have chosen, and producing something that people will actually share.</p>
+<h2>🧪 What the four tabs do</h2>
+<p>All four are computed once, shipped in one payload, and switch instantly with no further network round trip.</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Tab</th>
+<th>Backronym</th>
+<th>Glyph geometry is driven by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Tab"><strong>GIBBERISH</strong></td>
+<td data-label="Backronym">Glyph Interface for Bits, Entropy and Residue Information in Structural Homology</td>
+<td data-label="Glyph geometry is driven by">ESM-2 per-position probabilities, heights in bits of information content</td>
+</tr>
+<tr>
+<td data-label="Tab"><strong>BUMFLUFF</strong></td>
+<td data-label="Backronym">Buried/Unburied Mapping of Fonts, Letters, Uncovered Faces and Folds</td>
+<td data-label="Glyph geometry is driven by">Relative solvent accessible surface area</td>
+</tr>
+<tr>
+<td data-label="Tab"><strong>BALDERDASH</strong></td>
+<td data-label="Backronym">Bayesian Amino-acid Letter Display of Estimated Residue Deviations And Substitution Hotspots</td>
+<td data-label="Glyph geometry is driven by">Variant effect scores, ghost glyphs, ClinVar/gnomAD overlay</td>
+</tr>
+<tr>
+<td data-label="Tab"><strong>FOLDEROL</strong></td>
+<td data-label="Backronym">Folding Of Letters Displayed En Route, Ordered Linearly</td>
+<td data-label="Glyph geometry is driven by">An animated morph from a flat 2D logo strip into the 3D coordinates</td>
+</tr>
+</tbody>
+</table></div>
+<p><img alt="BUMFLUFF mode: one letter per residue, height driven by relative solvent accessibility, coloured from deep blue for buried to amber for exposed, with exposed hydrophobic residues flagged in orange" src="docs/screenshots/bumfluff.png"></p>
+<h2>📐 How a stack is built</h2>
+<pre><code class="language-text">H_i      = -sum_a p_a log2(p_a)      Shannon entropy, bits
+R_i      = log2(20) - H_i            information content, maximum 4.322 bits
+height_a = p_a * R_i                 per-letter height, bits
+</code></pre>
+<p>Letters are stacked along the residue's own side-chain direction, each standing on the one below, so <strong>the total height of a stack is that position's information content</strong>. A unit test checks this against hand-calculated values, because it is the difference between a quantitative picture and a decorative one.</p>
+<p>No small-sample entropy correction is applied. The usual correction compensates for estimating a distribution from a finite number of aligned sequences; here there is no alignment and no sample, so correcting would subtract a bias that does not exist.</p>
+<h2>🔬 Scientific choices, and what they were checked against</h2>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Method</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Quantity">Structure</td>
+<td data-label="Method">ESMFold (<code>facebook/esmfold_v1</code>)</td>
+<td data-label="Validation"><strong>0.84 Å CA RMSD</strong> for ubiquitin against the 1UBQ crystal structure</td>
+</tr>
+<tr>
+<td data-label="Quantity">Expectation</td>
+<td data-label="Method">ESM-2 650M (<code>facebook/esm2_t33_650M_UR50D</code>), <strong>masked</strong> marginals</td>
+<td data-label="Validation">Unmasked marginals return the wild type at 100 % of positions; see below</td>
+</tr>
+<tr>
+<td data-label="Quantity">pLDDT</td>
+<td data-label="Method">ESMFold's B-factor column</td>
+<td data-label="Validation">Normalised and asserted to 0-100; a 0-1 scale renders as a uniformly unconfident protein</td>
+</tr>
+<tr>
+<td data-label="Quantity">Relative SASA</td>
+<td data-label="Method">FreeSASA, 1.4 Å probe, over Tien et al. (2013) theoretical maxima</td>
+<td data-label="Validation">Total SASA 4804 Å² for 1UBQ against a published value of about 4800</td>
+</tr>
+<tr>
+<td data-label="Quantity">Secondary structure</td>
+<td data-label="Method">DSSP where present, else P-SEA from CA positions</td>
+<td data-label="Validation"><strong>83.7 %</strong> three-state agreement with DSSP over 805 residues of ten chains</td>
+</tr>
+<tr>
+<td data-label="Quantity">Virtual Cβ</td>
+<td data-label="Method">Standard tetrahedral construction from N, CA, C</td>
+<td data-label="Validation"><strong>0.13 Å mean</strong> deviation from the real Cβ across all 70 non-glycine residues of 1UBQ</td>
+</tr>
+<tr>
+<td data-label="Quantity">Variant score</td>
+<td data-label="Method"><code>log p(mutant) - log p(wild type)</code>, ESM-1v convention</td>
+<td data-label="Validation">Wild-type entry is exactly zero by construction; <strong>negative means deleterious</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Glycine has no Cβ, so one is constructed and glycines are <strong>never skipped</strong>: a hole at every glycine would be a hole at exactly the positions where backbones turn.</p>
+<h3>📝 Masked marginals are the default, and that is a change from the brief</h3>
+<p>The original specification made masked marginals an opt-in toggle, "L times slower". They are, and on a CPU that would settle it. On a GPU it does not, and the cheap option is actively misleading. Measured on ubiquitin:</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th></th>
+<th>Wild-type marginals</th>
+<th>Masked marginals</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="">Top-1 equals wild type</td>
+<td data-label="Wild-type marginals"><strong>100 %</strong></td>
+<td data-label="Masked marginals">80 %</td>
+</tr>
+<tr>
+<td data-label="">Mean information content</td>
+<td data-label="Wild-type marginals">4.01 bits</td>
+<td data-label="Masked marginals"><strong>3.20 bits</strong></td>
+</tr>
+<tr>
+<td data-label="">Language model time</td>
+<td data-label="Wild-type marginals">0.03 s</td>
+<td data-label="Masked marginals">0.42 s (about 2.2 s at 400 residues)</td>
+</tr>
+</tbody>
+</table></div>
+<p>An unmasked forward pass can read each residue off its own input, so it returns near-maximal confidence everywhere and GIBBERISH becomes a 3D rendering of the input sequence. Set <code>ALPHABETTI_MASKED_MARGINALS=0</code> to compare.</p>
+<h3>Where it fails, kept on display</h3>
+<p>The GFP example is deliberately one that does not work. ESM-2 has almost no evolutionary signal for avGFP: masked marginals recover the wild-type residue at <strong>10 %</strong> of positions against <strong>8 %</strong> for a randomly shuffled version of the same sequence, and mean information content is 0.27 of a possible 4.322 bits. Because ESMFold's trunk <em>is</em> ESM-2, the structure fails with it rather than independently, at mean pLDDT 42.8. The two never contradict each other, which is precisely why it is worth showing. Check the pLDDT before believing a picture.</p>
+<p><img alt="BALDERDASH mode: wild-type letters at full size with dimmer ghost letters beneath showing the residues the model would have preferred" src="docs/screenshots/balderdash.png"></p>
+<h2>🏗️ Architecture</h2>
+<pre><code class="language-text">Browser (three.js r169, vanilla ES modules, no build step)
+        |  JSON over fetch()
+        v
+Flask + Gunicorn on the mdeller.com droplet
+        |-- SQLite cache, keyed on sha256(sequence)
+        |-- bounded thread pool, job state in SQLite
+        v  HTTPS
+Hugging Face ZeroGPU Space
+        |-- ESMFold          -&gt; coordinates + pLDDT
+        `-- ESM-2 650M       -&gt; a 20 x L probability matrix
+</code></pre>
+<p><strong>The fold does not run on the droplet, and cannot.</strong> That box has 3.9 GB of RAM with about 2.0 GB free, two cores, and eight other applications already on it; the <code>esmfold_v1</code> checkpoint alone is 7.9 GB of fp32 weights, and a 400-residue fold needs several more gigabytes for the L x L pair representation. It is short by a factor of four to six.</p>
+<p>So the Space returns nothing but coordinates and probabilities, and <strong>every derived quantity is computed in this repository</strong> — information content, entropy, variant scores, accessibility, secondary structure, per-residue frames — in modules that need neither a GPU nor a network and are unit-tested without one. The science does not move when the compute does.</p>
+<p>That decision also removed Redis and RQ. With no models to hold, a job spends its entire life waiting on one HTTPS request, which is what threads are for; job state lives in SQLite so both Gunicorn workers can see it.</p>
+<h2>⚙️ Options</h2>
+<p>Every setting is an environment variable. See <code>.env.example</code>.</p>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_FOLD_BACKEND</code></td>
+<td data-label="Default"><code>hf_space</code></td>
+<td data-label="What it does"><code>hf_space</code>, <code>local</code> (torch in-process, needs ~16 GB), or <code>none</code> (cache only)</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_HF_SPACE</code></td>
+<td data-label="Default"><code>Dellboy/alphabetti-fold</code></td>
+<td data-label="What it does">The Space that holds the models</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>HF_TOKEN</code></td>
+<td data-label="Default"><em>(none)</em></td>
+<td data-label="What it does">Required in practice: the anonymous ZeroGPU quota is a handful of folds and runs out with an error that does not mention quota</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_MASKED_MARGINALS</code></td>
+<td data-label="Default"><code>1</code></td>
+<td data-label="What it does">Masked marginals; <code>0</code> gives the faster, misleading unmasked pass</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_MAX_LENGTH</code></td>
+<td data-label="Default"><code>400</code></td>
+<td data-label="What it does">Longer input is refused with an offer to truncate, naming the exact range kept</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_MIN_LENGTH</code></td>
+<td data-label="Default"><code>10</code></td>
+<td data-label="What it does"></td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_FOLD_TIMEOUT</code></td>
+<td data-label="Default"><code>900</code></td>
+<td data-label="What it does">Seconds before a fold is given up on cleanly</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_MAX_CONCURRENT</code></td>
+<td data-label="Default"><code>2</code></td>
+<td data-label="What it does">Concurrent folds; ZeroGPU serialises anyway and quota is per account</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_TOP_K</code></td>
+<td data-label="Default"><code>6</code></td>
+<td data-label="What it does">Amino acids per position carried in the payload</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_CACHE</code></td>
+<td data-label="Default"><code>instance/alphabetti.sqlite</code></td>
+<td data-label="What it does">Cache database</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_ENABLE_UNIPROT</code></td>
+<td data-label="Default"><code>1</code></td>
+<td data-label="What it does">Accession and entry-name lookup</td>
+</tr>
+<tr>
+<td data-label="Variable"><code>ALPHABETTI_ENABLE_VARIANTS</code></td>
+<td data-label="Default"><code>1</code></td>
+<td data-label="What it does">EBI Proteins API overlay for BALDERDASH</td>
+</tr>
+</tbody>
+</table></div>
+<h2>📤 Outputs</h2>
+<div class="emd-table-wrap"><table class="emd-data-table">
+<thead>
+<tr>
+<th>Format</th>
+<th>Route</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-label="Format">PDB</td>
+<td data-label="Route"><code>/api/download/&lt;id&gt;.pdb</code></td>
+<td data-label="Notes">The predicted structure, pLDDT in the B-factor column</td>
+</tr>
+<tr>
+<td data-label="Format">JSON</td>
+<td data-label="Route"><code>/api/download/&lt;id&gt;.json</code></td>
+<td data-label="Notes">The full payload that drives all four tabs</td>
+</tr>
+<tr>
+<td data-label="Format">CSV</td>
+<td data-label="Route"><code>/api/download/&lt;id&gt;.csv</code></td>
+<td data-label="Notes">Per residue: resnum, aa, pLDDT, RSA, SASA, SS, bits, entropy, surprise</td>
+</tr>
+<tr>
+<td data-label="Format">GLB</td>
+<td data-label="Route">in-app</td>
+<td data-label="Notes">Baked instanced geometry with vertex colours, for Blender or AR</td>
+</tr>
+<tr>
+<td data-label="Format">STL</td>
+<td data-label="Route">in-app</td>
+<td data-label="Notes">For printing; letters are separate shells and the app says so</td>
+</tr>
+<tr>
+<td data-label="Format">PNG</td>
+<td data-label="Route">in-app</td>
+<td data-label="Notes">1x, 2x, 4x, with a transparent-background option</td>
+</tr>
+<tr>
+<td data-label="Format">GIF</td>
+<td data-label="Route">in-app</td>
+<td data-label="Notes">One FOLDEROL loop, with a resolution selector</td>
+</tr>
+</tbody>
+</table></div>
+<h2>🚀 Running it</h2>
+<pre><code class="language-bash">git clone https://github.com/bellcheddar/ALPHABETTI.git
+cd ALPHABETTI
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.example .env          # add HF_TOKEN
+.venv/bin/python app.py       # http://127.0.0.1:8006
+</code></pre>
+<p>The four examples are committed as computed payloads, so the app shows a rotating protein before it has ever reached a GPU.</p>
+<pre><code class="language-bash">.venv/bin/python -m pytest tests/ -q          # 47 tests, no GPU, no network
+.venv/bin/python scripts/prewarm.py           # recompute the examples
+.venv/bin/python scripts/make_typeface.py /path/to/font.ttf out.json 700
+.venv/bin/python scripts/make_icon.py         # icon, favicon, OG card
+</code></pre>
+<p>Deployment: <code>deploy/provision.sh</code> once, <code>deploy/deploy.sh</code> thereafter.</p>
+<h2>✅ To Do</h2>
+<ul class="emd-tasklist">
+<li><span class="emd-check">&#9989;</span> <strong>Backend science modules</strong> — geometry, language model, accessibility and sequence handling, all pure numpy and Biopython, unit-tested with no GPU and no network.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Per-residue frames</strong> — orthonormal, right-handed, with a degenerate-case guard and both termini handled; mirrored function for function in <code>orientation.js</code> for FOLDEROL.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Virtual Cβ for glycine</strong> — validated to 0.13 Å mean against real Cβ positions in 1UBQ. Never skipped.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Fixed a 180° dihedral sign error</strong> — helices sat at −129° where P-SEA publishes +50°, so every angle criterion silently failed. The CA-only secondary structure assignment went from 55 % to <strong>83.7 %</strong> against DSSP. This matters because <code>mkdssp</code> is not on the droplet, making the fallback the production path.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Caught DSSP failing on every structure</strong> — <code>mkdssp</code> rejects any file with no PDB <code>HEADER</code> line and ESMFold emits none, while a bare <code>except: pass</code> reported it as merely absent.</li>
+<li><span class="emd-check">&#9989;</span> <strong>ZeroGPU fold service</strong> — ESMFold and ESM-2 650M behind a JSON API, 12.7 s wall for a first fold against an estimated 3-8 minutes on a CPU droplet.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Masked marginals by default</strong> — after measuring that unmasked marginals return the wild type at 100 % of positions.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Instanced glyph renderer</strong> — one <code>InstancedMesh</code> per amino acid, twenty draw calls regardless of chain length.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Baloo 2 to <code>typeface.json</code></strong> — with the curve argument order verified against the source outlines to 0.34 %.</li>
+<li><span class="emd-check">&#9989;</span> <strong>All four tabs</strong> against a single payload, switching with no network round trip.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Four examples spanning the fold classes</strong> — beta-grasp, mixed alpha/beta, all-alpha, and a beta barrel that deliberately fails.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Exports</strong> — GLB, STL, PNG at 1x/2x/4x, and an animated GIF over one FOLDEROL loop.</li>
+<li><span class="emd-check">&#9989;</span> <strong>47 tests</strong>, including two regressions for bugs found during the build.</li>
+<li><span class="emd-check">&#9989;</span> <strong><code>BENCHMARKS.md</code></strong> with real timings from the machines that serve the app.</li>
+<li><span class="emd-check">&#9989;</span> <strong>Neon Signage visual direction</strong>, chosen from five rendered candidates.</li>
+<li><span class="emd-check">&#11036;</span> <strong>DNS and TLS</strong> — <code>alphabetti.mdeller.com</code> needs an A record to 45.55.102.228 and a certbot certificate; mdeller.com's certificate does not cover subdomains.</li>
+<li><span class="emd-check">&#11036;</span> <strong>Add to the mdeller.com launcher</strong> — one entry at the top of <code>apps.json</code>, with the beacon pointing at the 3D typeface, since a scanner never fetches it.</li>
+<li><span class="emd-check">&#11036;</span> <strong>BALDERDASH substitution heatmap panel</strong> — the 20 x L matrix is already in the payload and colour-mapped; the clickable panel that flies the camera to a position is not built.</li>
+<li><span class="emd-check">&#11036;</span> <strong>Mobile testing on a real phone</strong> — the bottom-sheet layout and pinch-zoom are written but have only been checked at emulated widths.</li>
+<li><span class="emd-check">&#11036;</span> <strong>Verify GLB and STL open in Blender</strong> — the exporters run and produce files of a sensible size, but nobody has opened one yet.</li>
+<li><span class="emd-check">&#11036;</span> <strong>Revisit the 400-residue cap</strong> — set against an assumed CPU fold of minutes; at 32 s on ZeroGPU the honest constraint is now quota and payload size.</li>
+<li><span class="emd-check">&#11036;</span> <strong>A second fold backend</strong> — the Space is a single point of failure, and <code>FoldBackend</code> already has the seam for a fallback.</li>
+</ul>
+<h2>📄 Licence</h2>
+<p>MIT.</p>
+<h2>🙏 Citations</h2>
+<ul>
+<li>Lin Z, Akin H, Rao R, <em>et al.</em> (2023) Evolutionary-scale prediction of atomic-level protein structure with a language model. <em>Science</em> <strong>379</strong>:1123-1130.</li>
+<li>Meier J, Rao R, Verkuil R, <em>et al.</em> (2021) Language models enable zero-shot prediction of the effects of mutations on protein function. <em>NeurIPS</em>.</li>
+<li>Tien MZ, Meyer AG, Sydykova DK, Spielman SJ, Wilke CO (2013) Maximum allowed solvent accessibilities of residues in proteins. <em>PLoS ONE</em> <strong>8</strong>(11):e80635.</li>
+<li>Labesse G, Colloc'h N, Pothier J, Mornon JP (1997) P-SEA: a new efficient assignment of secondary structure from Cα trace of proteins. <em>CABIOS</em> <strong>13</strong>:291-295.</li>
+<li>Schneider TD, Stephens RM (1990) Sequence logos: a new way to display consensus sequences. <em>Nucleic Acids Research</em> <strong>18</strong>:6097-6100.</li>
+<li>Kabsch W, Sander C (1983) Dictionary of protein secondary structure. <em>Biopolymers</em> <strong>22</strong>:2577-2637.</li>
+<li>Kyte J, Doolittle RF (1982) A simple method for displaying the hydropathic character of a protein. <em>J Mol Biol</em> <strong>157</strong>:105-132.</li>
+</ul>
+<hr>
+<p>Built by <strong>Marc C. Deller, D.Phil.</strong> · <a href="https://marcdeller.com">marcdeller.com</a> · <a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a></p>
+<hr>
+<h2>👤 Author</h2>
+<p><strong>Marc C. Deller, D.Phil.</strong><br>
+Structural biologist &amp; drug discovery scientist  </p>
+<table class="emd-info-table">
+<tr>
+<td>🌐</td><td><a href="https://marcdeller.com" target="_blank" rel="noopener noreferrer">marcdeller.com</a></td>
+<td>✉️</td><td><a href="mailto:marc@marcdeller.com">marc@marcdeller.com</a></td>
+<td>🐙</td><td><a href="https://github.com/bellcheddar/ALPHABETTI.git" target="_blank" rel="noopener noreferrer">github.com/bellcheddar/ALPHABETTI.git</a></td>
+</tr>
+</table>
+</div>
+</body>
+</html>

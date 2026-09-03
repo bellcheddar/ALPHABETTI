@@ -6,8 +6,14 @@ Threads matter more than workers here: every request is either a SQLite read
 waiting on a socket costs almost nothing.
 """
 
-bind = "unix:/run/alphabetti/alphabetti.sock"
-umask = 0o007
+# TCP on the loopback, not a unix socket. That is the convention every other
+# app on this droplet already follows (FlexAppeal 8004, PANTS 8005, and so on
+# up to 8007), and it sidesteps the socket-permission problem that a unix
+# socket creates: systemd's RuntimeDirectory is 0770 owned by the service user,
+# and nginx runs as www-data, so nginx cannot traverse into it without being
+# added to the app's group. 502 with working static files is the symptom.
+import os
+bind = os.environ.get("BIND_ADDR", "127.0.0.1:8008")
 
 workers = 2
 worker_class = "gthread"

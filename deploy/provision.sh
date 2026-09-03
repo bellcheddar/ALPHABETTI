@@ -33,8 +33,8 @@ systemctl enable $APP-web
 
 echo "==> nginx"
 install -m 0644 "$ROOT/deploy/nginx-$APP-limits.conf" /etc/nginx/conf.d/$APP-limits.conf
-sed "s|__SERVER_NAME__|$SERVER_NAME|g" "$ROOT/deploy/nginx-$APP.conf" \
-    > /etc/nginx/sites-available/$APP
+sed -e "s|__SERVER_NAME__|$SERVER_NAME|g" -e "s|__BIND_ADDR__|${BIND_ADDR:-127.0.0.1:8008}|g" \
+    "$ROOT/deploy/nginx-$APP.conf" > /etc/nginx/sites-available/$APP
 ln -sf /etc/nginx/sites-available/$APP /etc/nginx/sites-enabled/$APP
 nginx -t
 systemctl reload nginx

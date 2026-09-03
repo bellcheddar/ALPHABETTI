@@ -5,7 +5,11 @@ gunicorn==23.0.0
 requests==2.32.5
 numpy==2.5.2
 biopython==1.88
-freesasa==2.2.1
+# freesasa is optional. It is the reference implementation and slightly
+# faster, but it has no Linux wheel and needs a compiler. Biopython's
+# Shrake-Rupley is used when it is absent and agrees to 0.1% (see
+# alphabetti/accessibility.py). Uncomment only where a toolchain already exists.
+#   freesasa==2.2.1
 
 # Optional, and only for the `local` fold backend used to bulk pre-warm the
 # cache from a machine that has the weights and about 16 GB of memory. NOT
