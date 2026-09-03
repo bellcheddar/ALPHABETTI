@@ -689,49 +689,18 @@ table.data tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
 }
 
 /* ==========================================================================
-   HOGWASH's sheet: a real WebLogo, shown where the 3D canvas normally is.
+   HOGWASH's citation, on the canvas it applies to.
    ========================================================================== */
 
-.logo-sheet {
-  position: absolute; inset: 0; z-index: 12;
-  display: flex; flex-direction: column;
-  background: var(--ne-void);
+.overlay-cite {
+  right: 14px; bottom: 12px; max-width: 44ch; text-align: right;
+  font-size: 9px; letter-spacing: 0.03em; color: var(--ne-fg-faint);
+  pointer-events: auto;
 }
-.logo-sheet[hidden] { display: none; }
+.overlay-cite[hidden] { display: none; }
+.overlay-cite a { color: var(--ne-cyan-dim); text-decoration: none; }
+.overlay-cite a:hover { color: var(--ne-cyan); text-decoration: underline; }
 
-.sheet-scroll {
-  flex: 1; min-height: 0; overflow: auto; padding: 16px;
-  display: flex; align-items: center; justify-content: center;
-}
-/* A logo is wide and short. Let it be its natural size and scroll, rather than
-   shrinking a 231-column alignment until the letters are two pixels tall. */
-.sheet-img {
-  max-width: none; display: block;
-  background: #fff;              /* WebLogo draws on white; honour that */
-  border: 1px solid var(--ne-edge-bright);
-  border-radius: var(--ne-radius);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-}
-.sheet-img[hidden] { display: none; }
-
-.sheet-empty { text-align: center; max-width: 46ch; color: var(--ne-fg-faint); }
-.sheet-empty h3 {
-  font-family: var(--ne-display); font-size: 16px; color: var(--ne-cyan);
-  text-shadow: 0 0 12px var(--ne-cyan-glow); margin: 0 0 12px;
-}
-.sheet-empty p { font-size: 13px; line-height: 1.6; margin: 0 0 10px; }
-.sheet-hint { color: var(--ne-fg-dim); }
-
-.sheet-credit {
-  flex: none; padding: 7px 14px; font-size: 10px; line-height: 1.6;
-  color: var(--ne-fg-faint); border-top: 1px solid var(--ne-edge);
-  background: var(--ne-panel);
-}
-.sheet-credit a { color: var(--ne-cyan-dim); text-decoration: none; }
-.sheet-credit a:hover { color: var(--ne-cyan); text-decoration: underline; }
-.sheet-credit b, .sheet-credit i { color: var(--ne-fg-dim); }
-
-/* The alignment box needs more room than the sequence box. */
 .align-input { min-height: 92px; font-size: 11px; }
 /* The picker is driven by an Upload button, so the native control never shows.
    This was scoped to `.file-row input[type=file]` and the input is not in one,

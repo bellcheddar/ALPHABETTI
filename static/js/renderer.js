@@ -447,6 +447,17 @@ export class Renderer {
     this.focusMarker.position.copy(position);
   }
 
+  /**
+   * How close the wheel may bring you. StageCamera derives its zoom limits from
+   * the framed distance (in to 53 %, out to 4x), which suits a protein framed
+   * whole and not a logo: a 96-Angstrom-wide strip is framed from 76 away and
+   * 53 % of that is still too far to read a letter. HOGWASH opens the floor so
+   * you can go right up to a column.
+   */
+  setZoomFloor(distance) {
+    this.control.minimumDistance = Math.max(2, distance);
+  }
+
   /** Set the attitude and distance directly. FOLDEROL drives its own framing. */
   setPose(attitude, distance) {
     if (attitude) this.control.attitude = attitude;

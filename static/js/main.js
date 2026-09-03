@@ -16,7 +16,7 @@ import { Gibberish } from './modes/gibberish.js';
 import { Bumfluff } from './modes/bumfluff.js';
 import { Balderdash } from './modes/balderdash.js';
 import { Folderol } from './modes/folderol.js';
-import { Hogwash } from './modes/hogwash.js';
+import { Hogwash, LAYOUTS } from './modes/hogwash.js';
 import { exportGLB, exportSTL, exportPNG, exportGIF } from './exporters.js';
 
 const state = {
@@ -121,9 +121,7 @@ function cache(target) {
   target.tabs = [...document.querySelectorAll('[data-tab]')];
   target.downloads = document.querySelector('[data-downloads]');
   target.rotateButton = document.querySelector('[data-rotate-toggle]');
-  target.sheet = document.querySelector('[data-logo-sheet]');
-  target.sheetImg = document.querySelector('[data-sheet-img]');
-  target.sheetEmpty = document.querySelector('[data-sheet-empty]');
+  target.cite = document.querySelector('[data-cite]');
   target.expand = document.querySelector('[data-expand]');
   target.dock = document.querySelector('[data-residue-dock]');
   target.dockBody = document.querySelector('[data-dock-body]');
@@ -311,24 +309,65 @@ function setMode(key, { force = false } = {}) {
     void dom.expand.offsetWidth;
     dom.expand.style.animation = '';
   }
-  // HOGWASH shows a real WebLogo where the 3D canvas normally is. Everything
-  // else keeps the canvas.
-  const isLogo = key === 'hogwash';
-  if (dom.sheet) dom.sheet.hidden = !isLogo;
-  if (isLogo) hideDock();
+  // HOGWASH used to cover the canvas with a flat WebLogo PNG. It no longer
+  // does: the logo is drawn in 3D like everything else, and the flat one is an
+  // output format rather than the way you look at it. A 231-column alignment as
+  // a static image is six stacked rows of two-millimetre letters.
+  // The WebLogo credit shows on the tab that uses it and nowhere else.
+  if (dom.cite) dom.cite.hidden = key !== 'hogwash';
+  hideDock();
 
   buildModeControls();
   buildSharedControls();
   rebuild();
-  if (isLogo && state.mode.alignment) renderLogo();
 }
 
 function rebuild() {
-  if (!state.data || !state.mode) return;
+  if (!state.mode) return;
+
+  // HOGWASH's coordinate system is the alignment's columns, not the structure's
+  // residues, and the two are different things: an alignment has gaps and
+  // usually covers only part of a chain. So it supplies its own ruler rows --
+  // the consensus residue per column -- rather than colouring the structure's
+  // sequence with numbers belonging to different positions.
+  if (state.modeKey === 'hogwash') {
+    if (!state.mode.data) { state.mode.build(); renderLegend(); return; }
+    const columns = state.mode.data.columns;
+    const rows = {
+      length: columns.length,
+      source: { accession: state.mode.source, name: 'alignment consensus' },
+      residues: columns.map((c) => ({
+        i: c.i, resnum: c.number, aa: c.stack[0]?.aa || '-',
+      })),
+    };
+    const result = state.mode.build();
+    state.ruler.render(rows, (r) => state.mode.rulerColour(r));
+    renderStats(result);
+    renderLegend();
+    frameLogo();
+    return;
+  }
+
+  if (!state.data) return;
   const result = state.mode.build();
   state.ruler.render(state.data, (r) => state.mode.rulerColour(r));
   renderStats(result);
   renderLegend();
+}
+
+/** Frame whatever HOGWASH just laid out, whichever shape it chose. */
+function frameLogo() {
+  const points = (state.mode.data?.columns || [])
+    .map((c) => state.mode.positionOf(c.i)).filter(Boolean);
+  if (!points.length) return;
+  state.renderer.frameStructure(points);
+  state.renderer.setBackbone(null);
+  // The ring and the helix ask to be framed against their near wall rather
+  // than in full; a strip or rows return null and keep the fitted distance.
+  const close = state.mode.preferredDistance?.();
+  if (close) state.renderer.setPose(null, close);
+  // Let the wheel bring you right up to a single column, whatever the layout.
+  state.renderer.setZoomFloor(6);
 }
 
 /* --------------------------------------------------------------- controls */
@@ -633,6 +672,51 @@ function buildHogwashControls(host, options, refresh) {
   }
   host.appendChild(examples);
 
+  // ---- the 3D arrangement
+  const shape = document.createElement('div');
+  shape.className = 'label';
+  shape.style.marginTop = '14px';
+  shape.innerHTML = '<span>Arrangement</span>';
+  host.appendChild(shape);
+
+  select(host, {
+    label: 'Layout', value: options.layout,
+    options: Object.entries(LAYOUTS),
+    onChange: (v) => { options.layout = v; refresh(); },
+  });
+  slider(host, {
+    label: 'Stack depth', min: 1, max: 8, step: 1,
+    value: options.stackDepth, format: (v) => `${v} letters`,
+    onInput: (v) => { options.stackDepth = v; refresh(); },
+  });
+  slider(host, {
+    label: 'Height scale', min: 0.4, max: 6, step: 0.1,
+    value: options.bitsPerAngstrom,
+    format: (v) => `1 ${options.unit_name} = ${v.toFixed(1)} A`,
+    onInput: (v) => { options.bitsPerAngstrom = v; refresh(); },
+  });
+  slider(host, {
+    label: 'Column spacing', min: 1.2, max: 6, step: 0.1,
+    value: options.columnSpacing, format: (v) => `${v.toFixed(1)} A`,
+    onInput: (v) => { options.columnSpacing = v; refresh(); },
+  });
+  slider(host, {
+    label: `Minimum ${options.unit_name}`, min: 0, max: 4.32, step: 0.05,
+    value: options.minBits, format: (v) => v.toFixed(2),
+    onInput: (v) => { options.minBits = v; refresh(); },
+  });
+  select(host, {
+    label: 'Colour by', value: options.scheme,
+    options: [
+      ['weblogo', "WebLogo's own scheme"],
+      ['conservation', 'Conservation'],
+      ['charge', 'Charge'],
+      ['chemistry', 'Chemistry (Taylor)'],
+      ['hydrophobicity', 'Hydrophobicity'],
+    ],
+    onChange: (v) => { options.scheme = v; refresh(); },
+  });
+
   // ---- options that change the NUMBERS
   const science = document.createElement('div');
   science.className = 'label';
@@ -666,17 +750,23 @@ function buildHogwashControls(host, options, refresh) {
     onChange: (v) => { options.alphabet = v; reload(); },
   });
 
-  // ---- options that change only the DRAWING
-  const look = document.createElement('div');
-  look.className = 'label';
-  look.style.marginTop = '14px';
-  look.innerHTML = '<span>Drawing</span>';
-  host.appendChild(look);
+  // ---- the flat WebLogo, which is now an OUTPUT rather than the view
+  const dl = document.createElement('div');
+  dl.className = 'label';
+  dl.style.marginTop = '14px';
+  dl.innerHTML = '<span>Export a real WebLogo</span>';
+  host.appendChild(dl);
+
+  const blurb = document.createElement('p');
+  blurb.className = 'message';
+  blurb.innerHTML = 'These are generated by WebLogo itself and are the '
+    + 'publication figure. EPS and PDF are vector.';
+  host.appendChild(blurb);
 
   select(host, {
-    label: 'Colour scheme', value: options.color_scheme,
+    label: 'Flat logo colours', value: options.color_scheme,
     options: (state.logoSchemes || ['auto']).map((c) => [c, c]),
-    onChange: (v) => { options.color_scheme = v; renderLogo(); },
+    onChange: (v) => { options.color_scheme = v; },
   });
   slider(host, {
     label: 'Stacks per line', min: 10, max: 120, step: 1,
@@ -685,28 +775,12 @@ function buildHogwashControls(host, options, refresh) {
   });
   toggle(host, {
     label: 'Error bars', checked: options.show_errorbars,
-    onChange: (v) => { options.show_errorbars = v; renderLogo(); },
+    onChange: (v) => { options.show_errorbars = v; },
   });
   toggle(host, {
     label: 'Boxes around letters', checked: options.show_boxes,
-    onChange: (v) => { options.show_boxes = v; renderLogo(); },
+    onChange: (v) => { options.show_boxes = v; },
   });
-
-  const redraw = document.createElement('div');
-  redraw.className = 'button-row';
-  const apply = document.createElement('button');
-  apply.className = 'button';
-  apply.textContent = 'Redraw';
-  apply.addEventListener('click', () => renderLogo());
-  redraw.appendChild(apply);
-  host.appendChild(redraw);
-
-  // ---- downloads, only the ones this server can actually produce
-  const dl = document.createElement('div');
-  dl.className = 'label';
-  dl.style.marginTop = '14px';
-  dl.innerHTML = '<span>Download the real thing</span>';
-  host.appendChild(dl);
   const dlRow = document.createElement('div');
   dlRow.className = 'button-row';
   for (const [fmt, ok] of Object.entries(state.logoFormats || {})) {
@@ -788,6 +862,21 @@ function buildExportRow(host) {
 /* ------------------------------------------------------------- read-outs */
 
 function renderStats(result) {
+  if (state.modeKey === 'hogwash') {
+    const d = state.mode.data;
+    if (!d) { stats(dom.stats, []); return; }
+    const bits = d.columns.map((c) => c.bits);
+    const mean = bits.reduce((a, b) => a + b, 0) / (bits.length || 1);
+    stats(dom.stats, [
+      { label: 'sequences', value: d.alignment.sequences },
+      { label: 'columns', value: d.alignment.columns },
+      { label: `mean ${d.unit}`, value: mean.toFixed(2) },
+      { label: `most conserved`, value: Math.max(...bits).toFixed(2) },
+      { label: 'letters drawn', value: state.field.total(), wide: true },
+      { label: 'alignment', value: state.mode.source || 'pasted', wide: true },
+    ]);
+    return;
+  }
   const s = state.data.stats;
   stats(dom.stats, [
     { label: 'mean pLDDT', value: s.mean_plddt },
@@ -860,9 +949,7 @@ async function loadAlignment(body, sourceLabel) {
     for (const note of payload.alignment?.notes || []) {
       message(dom.messages, note, 'warn');
     }
-    renderStats({});
-    renderLegend();
-    await renderLogo();
+    rebuild();
   } catch (error) {
     message(dom.messages, `<b>${error.message}</b>`, 'error');
   } finally {
@@ -890,42 +977,6 @@ function logoRequest() {
       ...(o.yaxis_scale ? { yaxis_scale: o.yaxis_scale } : {}),
     },
   };
-}
-
-async function renderLogo() {
-  const mode = state.mode;
-  if (!mode?.data) return;
-  // PNG if this deployment has ghostscript, otherwise say so rather than
-  // showing a broken image.
-  const format = state.logoFormats?.png ? 'png' : null;
-  if (!format) {
-    dom.sheetImg.hidden = true;
-    dom.sheetEmpty.hidden = false;
-    dom.sheetEmpty.innerHTML =
-      '<h3>The numbers are here; the picture is not</h3>'
-      + '<p>This server has no ghostscript, so WebLogo cannot rasterise. '
-      + 'The EPS and CSV downloads are the real output and work.</p>';
-    return;
-  }
-  const body = JSON.stringify({
-    alignment: mode.alignment, example: mode.example, ...logoRequest(),
-  });
-  const response = await fetch(`/api/logo/render.${format}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    message(dom.messages, `<b>${error.error || 'WebLogo could not draw that.'}</b>`, 'error');
-    return;
-  }
-  const blob = await response.blob();
-  if (state.logoUrl) URL.revokeObjectURL(state.logoUrl);
-  state.logoUrl = URL.createObjectURL(blob);
-  dom.sheetImg.src = state.logoUrl;
-  dom.sheetImg.alt = `Sequence logo of ${mode.source || 'the alignment'}, `
-    + `${mode.data.alignment.sequences} sequences`;
-  dom.sheetImg.hidden = false;
-  dom.sheetEmpty.hidden = true;
 }
 
 async function downloadLogo(format) {
@@ -966,6 +1017,19 @@ function hoverResidue(index, fromCanvas) {
  * the corner and takes the camera there.
  */
 function flyToResidue(index) {
+  if (state.modeKey === 'hogwash') {
+    const at = state.mode.positionOf(index);
+    const column = state.mode.data?.columns?.[index];
+    if (!at || !column) return;
+    state.renderer.focusResidue(at);
+    state.renderer.setFocusMarker(at);
+    state.ruler.highlight(index);
+    showDock({
+      i: index, resnum: column.number, aa: column.stack[0]?.aa || '-',
+      plddt: 0, rsa: 0, ss: 'C',
+    });
+    return;
+  }
   const residue = state.data?.residues[index];
   if (!residue) return;
   const at = new THREE.Vector3().fromArray(residue.ca);
@@ -986,7 +1050,10 @@ function showDock(residue) {
   // card listed it twice.
   const rows = [...rest];
   const seen = new Set(rows.map((r) => r.key));
-  const always = [
+  // An alignment column has no pLDDT, no accessibility and no secondary
+  // structure: those belong to a predicted structure, which is a different
+  // object. Showing them as zeros would be worse than showing nothing.
+  const always = state.modeKey === 'hogwash' ? [] : [
     { key: 'pLDDT', value: residue.plddt.toFixed(0) },
     { key: 'relative SASA', value: residue.rsa.toFixed(3) },
     { key: 'structure', value: { H: 'helix', E: 'strand', C: 'coil' }[residue.ss] || residue.ss },
