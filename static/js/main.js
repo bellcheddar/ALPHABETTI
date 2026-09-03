@@ -16,6 +16,7 @@ import { Gibberish } from './modes/gibberish.js';
 import { Bumfluff } from './modes/bumfluff.js';
 import { Balderdash } from './modes/balderdash.js';
 import { Folderol } from './modes/folderol.js';
+import { Hogwash } from './modes/hogwash.js';
 import { exportGLB, exportSTL, exportPNG, exportGIF } from './exporters.js';
 
 const state = {
@@ -89,6 +90,18 @@ async function boot() {
   window.__ALPHA_CAMPOS = () => state.renderer.camera.position.toArray().map(v => +v.toFixed(3));
   window.__ALPHA_CTRL = () => state.renderer.control;
   window.__ALPHA_R = () => state.renderer;
+  // What this deployment can actually do with WebLogo, asked once.
+  try {
+    const capabilities = await (await fetch('/api/logo/capabilities')).json();
+    state.logoFormats = capabilities.formats;
+    state.logoUnits = capabilities.units;
+    state.logoSchemes = capabilities.color_schemes;
+    state.logoAlphabets = capabilities.alphabets;
+    state.logoExamples = capabilities.examples;
+    const stamp = document.querySelector('[data-weblogo-version]');
+    if (stamp) stamp.textContent = capabilities.weblogo.version;
+  } catch { /* HOGWASH degrades to a message; the other tabs are unaffected */ }
+
   wireInputs();
   wireTabs();
 
@@ -108,6 +121,9 @@ function cache(target) {
   target.tabs = [...document.querySelectorAll('[data-tab]')];
   target.downloads = document.querySelector('[data-downloads]');
   target.rotateButton = document.querySelector('[data-rotate-toggle]');
+  target.sheet = document.querySelector('[data-logo-sheet]');
+  target.sheetImg = document.querySelector('[data-sheet-img]');
+  target.sheetEmpty = document.querySelector('[data-sheet-empty]');
   target.expand = document.querySelector('[data-expand]');
   target.dock = document.querySelector('[data-residue-dock]');
   target.dockBody = document.querySelector('[data-dock-body]');
@@ -254,6 +270,9 @@ const MODES = {
   folderol: { Class: Folderol, label: 'FOLDEROL',
     expand: '<b>F</b>olding <b>O</b>f <b>L</b>etters <b>D</b>isplayed '
           + '<b>E</b>n <b>R</b>oute, <b>O</b>rdered <b>L</b>inearly' },
+  hogwash: { Class: Hogwash, label: 'HOGWASH',
+    expand: '<b>H</b>eight-<b>O</b>rdered <b>G</b>lyphs <b>W</b>eighted '
+          + '<b>A</b>cross <b>S</b>equence <b>H</b>omologues' },
 };
 
 function setMode(key, { force = false } = {}) {
@@ -292,9 +311,16 @@ function setMode(key, { force = false } = {}) {
     void dom.expand.offsetWidth;
     dom.expand.style.animation = '';
   }
+  // HOGWASH shows a real WebLogo where the 3D canvas normally is. Everything
+  // else keeps the canvas.
+  const isLogo = key === 'hogwash';
+  if (dom.sheet) dom.sheet.hidden = !isLogo;
+  if (isLogo) hideDock();
+
   buildModeControls();
   buildSharedControls();
   rebuild();
+  if (isLogo && state.mode.alignment) renderLogo();
 }
 
 function rebuild() {
@@ -483,6 +509,11 @@ function buildModeControls() {
     host.appendChild(note);
   }
 
+  if (state.modeKey === 'hogwash') {
+    buildHogwashControls(host, options, refresh);
+    return;
+  }
+
   if (state.modeKey === 'folderol') {
     const timeline = slider(host, { label: 'Timeline', min: 0, max: 1, step: 0.005,
       value: state.mode.progress, format: (v) => `${(v * 100).toFixed(0)}%`,
@@ -519,6 +550,205 @@ function buildModeControls() {
     }, 120);
 
     buildExportRow(host);
+  }
+}
+
+/**
+ * HOGWASH's controls: WebLogo's own options, grouped by what they affect.
+ *
+ * The split matters. The first group changes the NUMBERS -- the composition the
+ * information is measured against, the small-sample correction, the units --
+ * and getting one of those wrong gives a different and wrong answer that looks
+ * exactly as convincing. The second only changes the drawing.
+ */
+function buildHogwashControls(host, options, refresh) {
+  const reload = () => loadAlignment(
+    { alignment: state.mode.alignment, example: state.mode.example },
+    state.mode.source);
+
+  // ---- where the alignment comes from
+  const lab = document.createElement('div');
+  lab.className = 'label';
+  lab.innerHTML = '<span>Alignment</span>';
+  host.appendChild(lab);
+
+  const box = document.createElement('textarea');
+  box.className = 'align-input';
+  box.rows = 4;
+  box.placeholder = 'Paste an alignment: FASTA, CLUSTAL, Stockholm, PHYLIP, MSF ...';
+  host.appendChild(box);
+
+  const row = document.createElement('div');
+  row.className = 'button-row';
+  const use = document.createElement('button');
+  use.className = 'button primary';
+  use.textContent = 'Make the logo';
+  use.addEventListener('click', () =>
+    loadAlignment({ alignment: box.value }, 'pasted alignment'));
+  row.appendChild(use);
+
+  const upload = document.createElement('button');
+  upload.className = 'button';
+  upload.textContent = 'Upload';
+  const picker = document.createElement('input');
+  picker.type = 'file';
+  picker.accept = '.fa,.fasta,.aln,.sto,.stk,.msf,.phy,.txt,.seq';
+  picker.addEventListener('change', async () => {
+    const file = picker.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      message(dom.messages, '<b>That file is over 8 MB.</b> A logo over that '
+        + 'many sequences is dominated by whichever clade was sequenced most; '
+        + 'a curated seed alignment gives a better picture.', 'warn');
+      return;
+    }
+    const text = await file.text();
+    box.value = text.slice(0, 200000);
+    loadAlignment({ alignment: text }, file.name);
+  });
+  upload.addEventListener('click', () => picker.click());
+  row.appendChild(upload);
+  row.appendChild(picker);
+
+  const family = document.createElement('button');
+  family.className = 'button';
+  family.textContent = 'Fetch family';
+  family.title = 'Fetch this protein\u2019s Pfam seed alignment from InterPro';
+  family.addEventListener('click', () => fetchFamilyAlignment(box));
+  row.appendChild(family);
+  host.appendChild(row);
+
+  const examples = document.createElement('div');
+  examples.className = 'button-row';
+  for (const [key, meta] of Object.entries(state.logoExamples || {})) {
+    const button = document.createElement('button');
+    button.className = 'button';
+    button.textContent = meta.label;
+    button.title = meta.note;
+    button.addEventListener('click', () => {
+      box.value = '';
+      loadAlignment({ example: key }, meta.label);
+    });
+    examples.appendChild(button);
+  }
+  host.appendChild(examples);
+
+  // ---- options that change the NUMBERS
+  const science = document.createElement('div');
+  science.className = 'label';
+  science.style.marginTop = '14px';
+  science.innerHTML = '<span>Measurement</span>';
+  host.appendChild(science);
+
+  select(host, {
+    label: 'Units', value: options.unit_name,
+    options: (state.logoUnits || ['bits']).map((u) => [u, u]),
+    onChange: (v) => { options.unit_name = v; reload(); },
+  });
+  select(host, {
+    label: 'Background composition', value: options.composition,
+    options: [
+      ['auto', 'Equiprobable (auto)'],
+      ['H. sapiens', 'H. sapiens'], ['E. coli', 'E. coli'],
+      ['S. cerevisiae', 'S. cerevisiae'], ['D. melanogaster', 'D. melanogaster'],
+      ['M. musculus', 'M. musculus'], ['C. elegans', 'C. elegans'],
+      ['none', 'None (no prior)'],
+    ],
+    onChange: (v) => { options.composition = v; reload(); },
+  });
+  toggle(host, {
+    label: 'Small-sample correction', checked: options.small_sample_correction,
+    onChange: (v) => { options.small_sample_correction = v; reload(); },
+  });
+  select(host, {
+    label: 'Alphabet', value: options.alphabet,
+    options: (state.logoAlphabets || ['auto']).map((a) => [a, a]),
+    onChange: (v) => { options.alphabet = v; reload(); },
+  });
+
+  // ---- options that change only the DRAWING
+  const look = document.createElement('div');
+  look.className = 'label';
+  look.style.marginTop = '14px';
+  look.innerHTML = '<span>Drawing</span>';
+  host.appendChild(look);
+
+  select(host, {
+    label: 'Colour scheme', value: options.color_scheme,
+    options: (state.logoSchemes || ['auto']).map((c) => [c, c]),
+    onChange: (v) => { options.color_scheme = v; renderLogo(); },
+  });
+  slider(host, {
+    label: 'Stacks per line', min: 10, max: 120, step: 1,
+    value: options.stacks_per_line, format: (v) => `${v}`,
+    onInput: (v) => { options.stacks_per_line = v; },
+  });
+  toggle(host, {
+    label: 'Error bars', checked: options.show_errorbars,
+    onChange: (v) => { options.show_errorbars = v; renderLogo(); },
+  });
+  toggle(host, {
+    label: 'Boxes around letters', checked: options.show_boxes,
+    onChange: (v) => { options.show_boxes = v; renderLogo(); },
+  });
+
+  const redraw = document.createElement('div');
+  redraw.className = 'button-row';
+  const apply = document.createElement('button');
+  apply.className = 'button';
+  apply.textContent = 'Redraw';
+  apply.addEventListener('click', () => renderLogo());
+  redraw.appendChild(apply);
+  host.appendChild(redraw);
+
+  // ---- downloads, only the ones this server can actually produce
+  const dl = document.createElement('div');
+  dl.className = 'label';
+  dl.style.marginTop = '14px';
+  dl.innerHTML = '<span>Download the real thing</span>';
+  host.appendChild(dl);
+  const dlRow = document.createElement('div');
+  dlRow.className = 'button-row';
+  for (const [fmt, ok] of Object.entries(state.logoFormats || {})) {
+    if (!ok) continue;
+    const button = document.createElement('button');
+    button.className = 'button';
+    button.textContent = fmt.toUpperCase();
+    button.addEventListener('click', () => downloadLogo(fmt));
+    dlRow.appendChild(button);
+  }
+  host.appendChild(dlRow);
+}
+
+/** Fetch the current protein's Pfam seed alignment. */
+async function fetchFamilyAlignment(box) {
+  const accession = state.data?.source?.accession;
+  if (!accession) {
+    message(dom.messages, '<b>No accession for the current protein.</b> The '
+      + 'family fetch needs one, so load an example or submit a UniProt '
+      + 'accession first.', 'warn');
+    return;
+  }
+  dom.loading.show('asking InterPro for a family');
+  try {
+    const list = await fetch(`/api/families/${accession}`);
+    const found = await list.json();
+    if (!list.ok) throw new Error(found.error);
+    if (!found.families?.length) {
+      throw new Error(`InterPro lists no Pfam family for ${accession}.`);
+    }
+    const first = found.families[0];
+    dom.loading.setStage(`downloading the ${first.id} seed alignment`);
+    const response = await fetch(`/api/families/${accession}/${first.id}/alignment`);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error);
+    box.value = payload.alignment.slice(0, 200000);
+    await loadAlignment({ alignment: payload.alignment },
+      `${first.id} ${first.name}`);
+  } catch (error) {
+    message(dom.messages, `<b>${error.message}</b>`, 'warn');
+  } finally {
+    dom.loading.hide();
   }
 }
 
@@ -598,6 +828,126 @@ function exportName() {
   const base = (source?.accession || source?.name || 'alphabetti')
     .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
   return `alphabetti_${base}_${state.modeKey}`;
+}
+
+/* --------------------------------------------------------------- HOGWASH */
+
+/**
+ * The WebLogo half.
+ *
+ * Two round trips on purpose. /api/logo returns WebLogo's per-column numbers,
+ * and /api/logo/render.<fmt> returns WebLogo's own drawing. Splitting them
+ * means a knob that only changes the picture does not re-run the maths, and a
+ * knob that changes the maths does not wait on ghostscript.
+ */
+async function loadAlignment(body, sourceLabel) {
+  const mode = state.mode;
+  if (!(mode instanceof Hogwash)) return;
+  clearMessages(dom.messages);
+  dom.loading.show('counting the alignment');
+  try {
+    const response = await fetch('/api/logo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...body, ...logoRequest() }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'That did not work.');
+
+    mode.data = payload;
+    mode.alignment = body.alignment ?? null;
+    mode.example = body.example ?? null;
+    mode.source = sourceLabel;
+    for (const note of payload.alignment?.notes || []) {
+      message(dom.messages, note, 'warn');
+    }
+    renderStats({});
+    renderLegend();
+    await renderLogo();
+  } catch (error) {
+    message(dom.messages, `<b>${error.message}</b>`, 'error');
+  } finally {
+    dom.loading.hide();
+  }
+}
+
+/** Everything the server needs to reproduce this logo. */
+function logoRequest() {
+  const o = state.mode.options;
+  return {
+    alphabet: o.alphabet,
+    input_format: o.input_format,
+    ignore_lower_case: o.ignore_lower_case,
+    composition: o.composition,
+    small_sample_correction: o.small_sample_correction,
+    options: {
+      unit_name: o.unit_name,
+      color_scheme: o.color_scheme,
+      show_errorbars: o.show_errorbars,
+      show_boxes: o.show_boxes,
+      stacks_per_line: o.stacks_per_line,
+      logo_title: o.logo_title,
+      first_index: o.first_index,
+      ...(o.yaxis_scale ? { yaxis_scale: o.yaxis_scale } : {}),
+    },
+  };
+}
+
+async function renderLogo() {
+  const mode = state.mode;
+  if (!mode?.data) return;
+  // PNG if this deployment has ghostscript, otherwise say so rather than
+  // showing a broken image.
+  const format = state.logoFormats?.png ? 'png' : null;
+  if (!format) {
+    dom.sheetImg.hidden = true;
+    dom.sheetEmpty.hidden = false;
+    dom.sheetEmpty.innerHTML =
+      '<h3>The numbers are here; the picture is not</h3>'
+      + '<p>This server has no ghostscript, so WebLogo cannot rasterise. '
+      + 'The EPS and CSV downloads are the real output and work.</p>';
+    return;
+  }
+  const body = JSON.stringify({
+    alignment: mode.alignment, example: mode.example, ...logoRequest(),
+  });
+  const response = await fetch(`/api/logo/render.${format}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    message(dom.messages, `<b>${error.error || 'WebLogo could not draw that.'}</b>`, 'error');
+    return;
+  }
+  const blob = await response.blob();
+  if (state.logoUrl) URL.revokeObjectURL(state.logoUrl);
+  state.logoUrl = URL.createObjectURL(blob);
+  dom.sheetImg.src = state.logoUrl;
+  dom.sheetImg.alt = `Sequence logo of ${mode.source || 'the alignment'}, `
+    + `${mode.data.alignment.sequences} sequences`;
+  dom.sheetImg.hidden = false;
+  dom.sheetEmpty.hidden = true;
+}
+
+async function downloadLogo(format) {
+  const mode = state.mode;
+  const body = JSON.stringify({
+    alignment: mode.alignment, example: mode.example, ...logoRequest(),
+  });
+  const response = await fetch(`/api/logo/render.${format}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    message(dom.messages, `<b>${error.error || 'That format failed.'}</b>`, 'error');
+    return;
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `hogwash_${(mode.source || 'logo').replace(/\W+/g, '_')}.${format}`;
+  document.body.appendChild(anchor); anchor.click(); anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
 /* -------------------------------------------------------------- residues */

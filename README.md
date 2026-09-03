@@ -47,8 +47,24 @@ All four are computed once, shipped in one payload, and switch instantly with no
 | **BUMFLUFF** | Buried/Unburied Mapping of Fonts, Letters, Uncovered Faces and Folds | Relative solvent accessible surface area |
 | **BALDERDASH** | Bayesian Amino-acid Letter Display of Estimated Residue Deviations And Substitution Hotspots | Variant effect scores, ghost glyphs, ClinVar/gnomAD overlay |
 | **FOLDEROL** | Folding Of Letters Displayed En Route, Ordered Linearly | An animated morph from a flat 2D logo strip into the 3D coordinates |
+| **HOGWASH** | Height-Ordered Glyphs Weighted Across Sequence Homologues | A real [WebLogo](https://github.com/gecrooks/weblogo) from a real alignment: the one tab that uses one |
 
 ![BUMFLUFF mode: one letter per residue, height driven by relative solvent accessibility, coloured from deep blue for buried to amber for exposed, with exposed hydrophobic residues flagged in orange](docs/screenshots/bumfluff.png)
+
+## 🐖 HOGWASH: the one tab with an alignment
+
+Every other tab asks a language model what it expects and uses **no alignment anywhere**. HOGWASH is the opposite and the older idea: count what evolution actually did in a column of aligned homologues. Both are here so they can be compared.
+
+It is a real WebLogo, not a lookalike. [WebLogo 3](https://github.com/gecrooks/weblogo) (MIT, used unmodified) does all of it: the column counts, the composition priors and pseudocounts, the small-sample correction, the unit conversions, the colour schemes, and the rendered EPS/PDF/PNG/SVG. ALPHABETTI supplies the alignment plumbing and a second rendering of the same `LogoData`.
+
+- **Input**: paste or upload FASTA, CLUSTAL, Stockholm, PHYLIP, MSF and six other formats, or fetch the current protein's Pfam seed alignment from InterPro.
+- **Every WebLogo option**: units (bits, nats, probability, kT, kJ/mol, kcal/mol, digits), background composition, small-sample correction, alphabet, colour scheme, error bars, stacks per line.
+- **Authentic output**: PNG, PDF, SVG, EPS, JPEG, CSV and WebLogo's own `logodata` text.
+- **Five bundled example alignments**, WebLogo's own, so the tab works when InterPro does not.
+
+> **Please cite WebLogo.** Crooks GE, Hon G, Chandonia JM, Brenner SE (2004). WebLogo: a sequence logo generator. *Genome Research* **14**(6):1188-1190. [doi:10.1101/gr.849004](https://doi.org/10.1101/gr.849004) · [PMC419797](https://pmc.ncbi.nlm.nih.gov/articles/PMC419797/)
+
+Licence text and all other dependencies: [`THIRD-PARTY.md`](THIRD-PARTY.md).
 
 ## 📐 How a stack is built
 
@@ -205,6 +221,8 @@ Deployment: `deploy/provision.sh` once, `deploy/deploy.sh` thereafter.
 - [x] **Neon Signage visual direction**, chosen from five rendered candidates.
 - [ ] **DNS and TLS** — `alphabetti.mdeller.com` needs an A record to 45.55.102.228 and a certbot certificate; mdeller.com's certificate does not cover subdomains.
 - [ ] **Add to the mdeller.com launcher** — one entry at the top of `apps.json`, with the beacon pointing at the 3D typeface, since a scanner never fetches it.
+- [x] **HOGWASH** — a real WebLogo from a real alignment, with every WebLogo option exposed, seven output formats, Pfam fetch and five bundled example alignments.
+- [ ] **HOGWASH in 3D** — map the alignment's columns onto the structure and compare, per position, what evolution did against what the language model expects. The `LogoData` is already in the payload; the gap-to-residue mapping is not built.
 - [ ] **BALDERDASH substitution heatmap panel** — the 20 x L matrix is already in the payload and colour-mapped; the clickable panel that flies the camera to a position is not built.
 - [ ] **Mobile testing on a real phone** — the bottom-sheet layout and pinch-zoom are written but have only been checked at emulated widths.
 - [ ] **Verify GLB and STL open in Blender** — the exporters run and produce files of a sensible size, but nobody has opened one yet.

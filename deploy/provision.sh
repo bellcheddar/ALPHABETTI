@@ -21,6 +21,13 @@ apt-get install -y -qq python3-venv python3-dev build-essential nginx
 "$ROOT/.venv/bin/pip" install -q -r "$ROOT/requirements.txt"
 chown -R $APP:$APP "$ROOT/.venv"
 
+echo "==> ghostscript and pdf2svg, for WebLogo's raster and vector output"
+# WebLogo generates EPS natively and shells out for everything else. Without
+# these, HOGWASH still works and still offers EPS, CSV and logodata; the PNG
+# preview and the PDF/SVG downloads are simply not offered.
+apt-get install -y -qq ghostscript pdf2svg 2>/dev/null \
+    || echo "    not available; HOGWASH will offer EPS/CSV only"
+
 echo "==> DSSP, if it is available"
 # Not fatal. Without it the app falls back to the CA-only P-SEA assignment,
 # which agrees with DSSP on 83.7% of residues and is reported as such in the UI.

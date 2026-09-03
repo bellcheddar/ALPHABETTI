@@ -11,6 +11,13 @@ biopython==1.88
 # alphabetti/accessibility.py). Uncomment only where a toolchain already exists.
 #   freesasa==2.2.1
 
+# HOGWASH. WebLogo does all the sequence-logo science; scipy is its dependency,
+# not ours. PDF/PNG/JPEG additionally need the `ghostscript` package and SVG
+# needs `pdf2svg`, both installed by deploy/provision.sh; without them EPS, CSV
+# and logodata still work and the app says which are available.
+weblogo==3.9.0
+scipy==1.18.1
+
 # Optional, and only for the `local` fold backend used to bulk pre-warm the
 # cache from a machine that has the weights and about 16 GB of memory. NOT
 # needed on the droplet, and installing it there would be a mistake.

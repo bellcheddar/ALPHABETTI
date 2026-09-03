@@ -76,6 +76,29 @@ height_a = p_a * R_i                    per-letter height, bits</pre>
       alone is 7.9 GB of weights.
     </p>
 
+    <h2>HOGWASH, and the one tab that uses an alignment</h2>
+    <p>
+      Every tab above derives from a protein language model and uses no
+      alignment at all. <b>HOGWASH is the exception</b>: it counts what
+      evolution actually did in a column of aligned homologues, which is the
+      older and better-established way to measure conservation. Both are in the
+      app so they can be compared.
+    </p>
+    <p>
+      The numbers and the drawing are both
+      <a href="https://github.com/gecrooks/weblogo" target="_blank" rel="noopener noreferrer">WebLogo 3</a>'s,
+      MIT licensed and used unmodified: the column counts, the composition
+      priors, the small-sample correction, the unit conversions, the colour
+      schemes and the rendered output. ALPHABETTI supplies the input plumbing
+      and nothing else. Please cite it as
+      <b>Crooks GE, Hon G, Chandonia JM, Brenner SE (2004) WebLogo: a sequence
+      logo generator. <i>Genome Research</i> 14:1188-1190</b>
+      (<a href="https://doi.org/10.1101/gr.849004" target="_blank" rel="noopener noreferrer">doi:10.1101/gr.849004</a>,
+      <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC419797/" target="_blank" rel="noopener noreferrer">PMC419797</a>),
+      and the idea itself as Schneider &amp; Stephens (1990). Full licence text
+      and every other dependency is in <code>THIRD-PARTY.md</code>.
+    </p>
+
     <h2>The other quantities</h2>
     <table class="data">
       <thead><tr><th>Quantity</th><th>How it is computed</th></tr></thead>

@@ -278,6 +278,125 @@ def create_app(config: type[Config] | None = None) -> Flask:
         except VariantError as exc:
             return jsonify({"error": str(exc)}), 502
 
+    # ---------------------------------------------------- HOGWASH (WebLogo)
+
+    @app.get("/api/logo/capabilities")
+    def logo_capabilities():
+        """What this deployment can actually do, checked rather than assumed."""
+        from alphabetti import logos
+        return jsonify({
+            "formats": logos.available_formats(),
+            "units": logos.UNITS,
+            "alphabets": ["auto"] + logos.ALPHABETS,
+            "input_formats": ["auto"] + logos.FORMATS,
+            "color_schemes": list(logos.COLOR_SCHEMES),
+            "examples": {k: v for k, v in ALIGNMENT_EXAMPLES.items()},
+            "weblogo": {
+                "version": _weblogo_version(),
+                "source": "https://github.com/gecrooks/weblogo",
+                "licence": "MIT",
+                "citation": "Crooks GE, Hon G, Chandonia JM, Brenner SE (2004) "
+                            "WebLogo: a sequence logo generator. "
+                            "Genome Research 14:1188-1190.",
+                "doi": "https://doi.org/10.1101/gr.849004",
+                "pmc": "https://pmc.ncbi.nlm.nih.gov/articles/PMC419797/",
+            },
+        })
+
+    @app.post("/api/logo")
+    def logo():
+        """Build a logo from an alignment. Returns the numbers, not a picture."""
+        from alphabetti import logos
+        body = request.get_json(silent=True) or {}
+        text = body.get("alignment") or ""
+
+        if body.get("example"):
+            stored = _alignment_example(body["example"])
+            if stored is None:
+                return jsonify({"error": f"No alignment example "
+                                         f"{body['example']!r}."}), 404
+            text = stored
+
+        try:
+            alignment = logos.parse_alignment(
+                text,
+                fmt=body.get("input_format", "auto"),
+                alphabet_name=body.get("alphabet", "auto"),
+                ignore_lower_case=bool(body.get("ignore_lower_case")),
+            )
+            data = logos.build_logo_data(
+                alignment,
+                composition=body.get("composition", "auto"),
+                weight=body.get("weight"),
+                small_sample_correction=body.get("small_sample_correction", True),
+            )
+            options = logos.make_options(body.get("options", {}),
+                                         alignment.alphabet_name)
+            payload = logos.to_payload(data, alignment, options)
+        except logos.LogoError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        # The rendered logo is fetched separately, so a knob that only changes
+        # the picture does not re-run the maths and a knob that changes the
+        # maths does not wait on ghostscript.
+        payload["id"] = _cache_logo(cache, text, body)
+        return _gzipped(payload)
+
+    @app.post("/api/logo/render.<fmt>")
+    def logo_render(fmt: str):
+        """The genuine WebLogo drawing, through WebLogo's own formatters."""
+        from alphabetti import logos
+        body = request.get_json(silent=True) or {}
+        text = body.get("alignment") or ""
+        if body.get("example"):
+            text = _alignment_example(body["example"]) or ""
+
+        try:
+            alignment = logos.parse_alignment(
+                text, fmt=body.get("input_format", "auto"),
+                alphabet_name=body.get("alphabet", "auto"),
+                ignore_lower_case=bool(body.get("ignore_lower_case")))
+            data = logos.build_logo_data(
+                alignment,
+                composition=body.get("composition", "auto"),
+                weight=body.get("weight"),
+                small_sample_correction=body.get("small_sample_correction", True))
+            options = logos.make_options(body.get("options", {}),
+                                         alignment.alphabet_name)
+            drawn = logos.render(data, options, fmt)
+        except logos.LogoError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        mimetypes = {
+            "pdf": "application/pdf", "eps": "application/postscript",
+            "png": "image/png", "jpeg": "image/jpeg", "svg": "image/svg+xml",
+            "txt": "text/plain", "csv": "text/csv",
+        }
+        disposition = "inline" if fmt in ("png", "svg") else "attachment"
+        return Response(drawn, mimetype=mimetypes.get(fmt, "application/octet-stream"),
+                        headers={"Content-Disposition":
+                                 f'{disposition}; filename="hogwash.{fmt}"',
+                                 "Cache-Control": "no-store"})
+
+    @app.get("/api/families/<accession>")
+    def families(accession: str):
+        """Pfam families for an accession, with where they sit in the chain."""
+        from alphabetti.families import FamilyError, families_for
+        try:
+            return jsonify({"accession": accession.upper(),
+                            "families": families_for(accession)})
+        except FamilyError as exc:
+            return jsonify({"error": str(exc)}), 503
+
+    @app.get("/api/families/<accession>/<pfam_id>/alignment")
+    def family_alignment(accession: str, pfam_id: str):
+        """The seed alignment for one family, ready to feed to HOGWASH."""
+        from alphabetti.families import FamilyError, alignment_for
+        try:
+            return _gzipped(alignment_for(accession, pfam_id))
+        except FamilyError as exc:
+            return jsonify({"error": str(exc)}), 503
+
     @app.get("/api/download/<result_id>.<kind>")
     def download(result_id: str, kind: str):
         """The predicted PDB, the payload, or a per-residue CSV."""
@@ -343,6 +462,41 @@ def create_app(config: type[Config] | None = None) -> Flask:
         return bool(meta.get("id")) and cache_.has(meta["id"])
 
     return app
+
+
+# WebLogo's own example alignments, bundled so the tab always has something to
+# show. InterPro is measurably unreliable -- it answered one accession correctly
+# and then returned HTTP 500 for every accession two minutes later -- and a tab
+# whose only input path is a flaky third-party API is a tab that is broken
+# whenever that API is.
+ALIGNMENT_EXAMPLES = {
+    "globins": {"label": "Globins", "note": "56 sequences. The same fold as the "
+                "myoglobin structure, seen as a family."},
+    "cap_hth": {"label": "CAP helix-turn-helix", "note": "101 sequences."},
+    "cap_dna": {"label": "CAP sites (DNA)", "note": "49 sequences, DNA alphabet."},
+    "hth": {"label": "Helix-turn-helix", "note": "30 sequences."},
+    "lexa": {"label": "LexA sites (DNA)", "note": "19 sequences, DNA alphabet."},
+}
+
+
+def _weblogo_version() -> str:
+    try:
+        import importlib.metadata as metadata
+        return metadata.version("weblogo")
+    except Exception:
+        return "unknown"
+
+
+def _alignment_example(name: str) -> str | None:
+    path = EXAMPLES_DIR / "alignments" / f"{name}.fa"
+    return path.read_text() if path.exists() else None
+
+
+def _cache_logo(cache, text: str, body: dict) -> str:
+    """A stable id for this alignment, so a render request can find it again."""
+    import hashlib
+    key = hashlib.sha256(text.encode()).hexdigest()
+    return key[:32]
 
 
 def _gzipped(payload: dict, extra: dict | None = None) -> Response:
