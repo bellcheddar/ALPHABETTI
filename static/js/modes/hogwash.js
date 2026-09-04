@@ -246,6 +246,11 @@ export class Hogwash {
     return { drawn, columns: columns.length };
   }
 
+  /** True when this layout is a flat sheet meant to be read square-on. */
+  get isFlat() {
+    return this.options.layout === 'rows' || this.options.layout === 'strip';
+  }
+
   /** Where a column ended up, so the camera can be sent there. */
   positionOf(index) {
     return this._placed[index] || null;
@@ -284,10 +289,10 @@ export class Hogwash {
       const rows = Math.ceil(columns / perRow);
       const width = perRow * columnSpacing;
       const height = rows === 1 ? tall : (rows - 1) * 14 + tall;
-      // 1.2 rather than a snug 1.08: the mode buttons and the view controls sit
-      // over the top-left of the canvas, and a tight fit ran the first row of a
-      // wrapped logo underneath them.
-      return 1.2 * Math.max(
+      // 1.35, not a snug fit: the mode buttons, the view controls and the
+      // legend all sit over the canvas, and a logo framed edge to edge runs
+      // underneath them.
+      return 1.35 * Math.max(
         (width / 2) / Math.tan(horizontal / 2),
         (height / 2) / Math.tan(vertical / 2),
       );

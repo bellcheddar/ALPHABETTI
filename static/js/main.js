@@ -60,6 +60,7 @@ async function boot() {
   // Capacity covers the worst case the app allows: 400 residues at six letters
   // a position, plus BALDERDASH's ghosts and clinical ranks.
   state.field = new GlyphField(state.glyphSet, material, 4200);
+  state.renderStyle = 'neon';
   state.renderer.add(state.field.group);
   state.renderer.setPickTargets(state.field.objects, state.field);
 
@@ -132,6 +133,7 @@ function cache(target) {
   target.dockBody = document.querySelector('[data-dock-body]');
   target.dockClose = document.querySelector('[data-dock-close]');
   target.resetButton = document.querySelector('[data-reset-view]');
+  target.styleButton = document.querySelector('[data-style-toggle]');
 }
 
 /* ------------------------------------------------------------------- data */
@@ -438,6 +440,18 @@ function rebuild() {
   renderLegend();
 }
 
+/** Swap every glyph onto the chosen material and tell the button what it is. */
+function applyRenderStyle() {
+  const material = state.renderer.setRenderStyle(state.renderStyle);
+  state.field.setMaterial(material);
+  const matte = state.renderStyle === 'matte';
+  if (dom.styleButton) {
+    dom.styleButton.setAttribute('aria-pressed', String(matte));
+    dom.styleButton.classList.toggle('off', matte);
+    dom.styleButton.querySelector('span').textContent = matte ? 'matte' : 'neon';
+  }
+}
+
 /** Frame whatever HOGWASH just laid out, whichever shape it chose. */
 function frameLogo() {
   const points = (state.mode.data?.columns || [])
@@ -449,6 +463,9 @@ function frameLogo() {
   // than in full; a strip or rows return null and keep the fitted distance.
   const close = state.mode.preferredDistance?.();
   if (close) state.renderer.setPose(null, close);
+  // A sheet of text is meant to be read, not admired at an angle. The ring and
+  // the helix keep the resting tilt, which is what gives them their depth.
+  if (state.mode.isFlat) state.renderer.faceOn();
   // Let the wheel bring you right up to a single column, whatever the layout.
   state.renderer.setZoomFloor(6);
 }
@@ -506,12 +523,18 @@ function wireInputs() {
   });
   dom.dockClose?.addEventListener('click', hideDock);
 
+  dom.styleButton?.addEventListener('click', () => {
+    state.renderStyle = state.renderStyle === 'matte' ? 'neon' : 'matte';
+    applyRenderStyle();
+  });
+
   // Keyboard, so the two things people reach for most are one key away.
   window.addEventListener('keydown', (event) => {
     if (event.target.matches('input, textarea, select')) return;
     if (event.key === 'r' || event.key === 'R') dom.rotateButton?.click();
     if (event.key === '0') { state.renderer.resetCamera(); hideDock(); }
     if (event.key === 'Escape') hideDock();
+    if (event.key === 'm' || event.key === 'M') dom.styleButton?.click();
   });
 
   buildSharedControls();
@@ -1156,7 +1179,14 @@ function flyToResidue(index) {
     const at = state.mode.positionOf(index);
     const column = state.mode.data?.columns?.[index];
     if (!at || !column) return;
-    state.renderer.focusResidue(at);
+    if (state.mode.isFlat) {
+      // Flat layouts are read, not orbited: bring the column to the middle and
+      // come in, leaving the sheet square to the camera. Rotating to "face" a
+      // column would tip a page of text onto its edge.
+      state.renderer.centreOn(at, { distance: Math.max(18, at.length() * 0.25 + 26) });
+    } else {
+      state.renderer.focusResidue(at);
+    }
     state.renderer.setFocusMarker(at);
     state.ruler.highlight(index);
     showDock({

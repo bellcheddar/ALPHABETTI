@@ -251,17 +251,60 @@ export class Renderer {
     this.composer.addPass(new OutputPass());
   }
 
-  /** Material shared by every glyph. Emissive so the letters read as tubes. */
-  makeMaterial({ emissiveIntensity = 0.55 } = {}) {
+  /**
+   * Materials shared by every glyph. Two of them, swapped by a button.
+   *
+   *   neon  MeshStandardMaterial, low roughness and some metalness. The
+   *         specular glint as a letter turns is most of the appeal and is what
+   *         the whole visual direction is built on.
+   *   matte MeshToonMaterial. Banded diffuse shading, no specular highlight at
+   *         all, which reads as flat cartoon ink. Better for a screenshot, for
+   *         anyone who finds the glare tiring, and for actually reading a dense
+   *         logo where every letter is catching the light at once.
+   */
+  makeMaterial(style = 'neon') {
+    if (style === 'matte') {
+      // Three hard bands rather than a smooth ramp: that step is what makes it
+      // read as drawn rather than lit.
+      const steps = new Uint8Array([90, 90, 170, 170, 255, 255]);
+      const gradient = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
+      gradient.needsUpdate = true;
+      gradient.minFilter = gradient.magFilter = THREE.NearestFilter;
+      return new THREE.MeshToonMaterial({ gradientMap: gradient, toneMapped: true });
+    }
     return new THREE.MeshStandardMaterial({
       roughness: 0.28,
       metalness: 0.35,
-      // Vertex colours carry the per-instance colour set by GlyphField.
       vertexColors: false,
-      emissiveIntensity,
+      emissiveIntensity: 0.55,
       emissive: new THREE.Color(0x000000),
       toneMapped: true,
     });
+  }
+
+  /**
+   * Switch between the lit and the flat look.
+   *
+   * The bloom goes with it. Toon shading with a bloom pass over the top is the
+   * worst of both: flat letters wearing a halo. Dropping the strength to zero
+   * leaves the pass in place so the switch back is instant.
+   */
+  setRenderStyle(style) {
+    this.style = style;
+    const material = this.makeMaterial(style);
+    if (this._glyphMaterial) this._glyphMaterial.dispose();
+    this._glyphMaterial = material;
+    this.bloom.strength = style === 'matte' ? 0.0 : 0.48;
+    // A matte scene wants flatter light too, or the toon bands all land in the
+    // same place and it looks like a mistake rather than a choice.
+    this.lights.hemisphere.intensity = style === 'matte' ? 1.15 : 0.55;
+    this.lights.key.intensity = style === 'matte' ? 1.35 : 2.1;
+    this.lights.rim.intensity = style === 'matte' ? 0.25 : 0.7;
+    if (this.backbone) {
+      this.backbone.material.roughness = style === 'matte' ? 1.0 : 0.55;
+      this.backbone.material.metalness = style === 'matte' ? 0.0 : 0.1;
+    }
+    return material;
   }
 
   /** Renderable content goes INSIDE the subject so it turns with everything else. */
@@ -315,6 +358,8 @@ export class Renderer {
     // this the protein would swing around a point off to one side instead of
     // turning about its own middle.
     this.centring.position.copy(centre).multiplyScalar(-1);
+    // Remembered so a centred-on view can be returned to the whole object.
+    this._homeCentre = this.centring.position.clone();
     this.subject.quaternion.set(0, 0, 0, 1);
 
     // The BOUNDING SPHERE, not the box diagonal.
@@ -464,6 +509,40 @@ export class Renderer {
    */
   setZoomFloor(distance) {
     this.control.minimumDistance = Math.max(2, distance);
+  }
+
+  /**
+   * Bring a point to the middle of the view WITHOUT rotating anything.
+   *
+   * focusResidue turns the subject so the thing you clicked faces the camera,
+   * which is exactly right for a protein and exactly wrong for a flat logo:
+   * a sheet of text is already facing you, and spinning it to "look at" a
+   * column tips the whole thing on edge. The camera here always looks at the
+   * origin, so centring means moving the subject rather than aiming the camera.
+   */
+  centreOn(local, { milliseconds = 520, distance = null } = {}) {
+    this._flying = false;
+    const from = this.centring.position.clone();
+    const to = local ? local.clone().multiplyScalar(-1) : this._homeCentre.clone();
+    const startDistance = this.control.distance;
+    const endDistance = distance ?? startDistance;
+    const started = performance.now();
+
+    const step = (now) => {
+      const t = Math.min(1, (now - started) / milliseconds);
+      const eased = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+      this.centring.position.lerpVectors(from, to, eased);
+      this.control.distance = startDistance + (endDistance - startDistance) * eased;
+      this.control.idleTime = 0;
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /** Square-on to the camera: no attitude at all. */
+  faceOn() {
+    this.control.attitude = [0, 0, 0, 1];
+    this.subject.quaternion.set(0, 0, 0, 1);
   }
 
   /** Set the attitude and distance directly. FOLDEROL drives its own framing. */
