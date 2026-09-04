@@ -41,13 +41,13 @@
 
 There are no tabs. The structure, the camera and the sequence ruler are shared, and the mode buttons on the canvas change only what the glyphs mean. Everything is computed once, shipped in one payload, and switches instantly with no further network round trip.
 
-| Mode | Name | Glyph geometry is driven by |
-|---|---|---|
+| Mode | Name | Backronym | Glyph geometry is driven by |
+|---|---|---|---|
 | **Information** | GIBBERISH | Glyph Interface for Bits, Entropy and Residue Information in Structural Homology | ESM-2 per-position probabilities, heights in bits of information content |
 | **Solvent** | BUMFLUFF | Buried/Unburied Mapping of Fonts, Letters, Uncovered Faces and Folds | Relative solvent accessible surface area |
 | **Hotspots** | BALDERDASH | Bayesian Amino-acid Letter Display of Estimated Residue Deviations And Substitution Hotspots | Variant effect scores, ghost glyphs, ClinVar/gnomAD overlay |
 | **Fold** | FOLDEROL | Folding Of Letters Displayed En Route, Ordered Linearly | An animated morph from a flat 2D logo strip into the 3D coordinates |
-| **Logo** | HOGWASH | Height-Ordered Glyphs Weighted Across Sequence Homologues | A real [WebLogo](https://github.com/gecrooks/weblogo) from a real alignment: the one tab that uses one |
+| **Logo** | HOGWASH | Height-Ordered Glyphs Weighted Across Sequence Homologues | A real [WebLogo](https://github.com/gecrooks/weblogo) from a real alignment: the one mode that uses one |
 
 ![BUMFLUFF mode: one letter per residue, height driven by relative solvent accessibility, coloured from deep blue for buried to amber for exposed, with exposed hydrophobic residues flagged in orange](docs/screenshots/bumfluff.png)
 
