@@ -174,11 +174,15 @@ img, canvas, svg { max-width: 100%; }
 
 .tabs { display: flex; gap: 2px; margin-top: 14px; flex-wrap: wrap; }
 .tab {
-  font-family: var(--ne-mono); font-size: 10.5px; letter-spacing: 0.12em;
-  padding: 9px 15px; color: var(--ne-fg-faint); background: transparent;
+  font-family: var(--ne-mono); font-size: 10.5px; letter-spacing: 0.1em;
+  /* Sentence case, not uppercase. These are descriptions now rather than
+     names, and "SOLVENT ACCESSIBILITY" shouts where "solvent accessibility"
+     simply says. */
+  text-transform: none;
+  padding: 9px 14px; color: var(--ne-fg-faint); background: transparent;
   border: 1px solid transparent; border-bottom: none; cursor: pointer;
   border-radius: var(--ne-radius) var(--ne-radius) 0 0;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s; white-space: nowrap;
 }
 .tab:hover { color: var(--ne-fg-dim); background: rgba(255, 255, 255, 0.03); }
 .tab[aria-selected="true"] {
