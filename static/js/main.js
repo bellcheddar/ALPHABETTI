@@ -135,6 +135,14 @@ function cache(target) {
 
 /* ------------------------------------------------------------------- data */
 
+/** Light the button whose protein is on screen, and only that one. */
+function markExample(name) {
+  state.activeExample = name;
+  for (const button of document.querySelectorAll('[data-example]')) {
+    button.classList.toggle('active', button.dataset.example === name);
+  }
+}
+
 async function loadExample(name) {
   dom.loading.show('loading example');
   clearMessages(dom.messages);
@@ -143,6 +151,7 @@ async function loadExample(name) {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || 'That example is unavailable.');
     adopt(payload);
+    markExample(name);
   } catch (error) {
     message(dom.messages, `<b>Could not load the example.</b> ${error.message}`, 'error');
   } finally {
@@ -175,6 +184,7 @@ async function submit(text, { truncate = false } = {}) {
 
     if (payload.residues) {              // a cache hit came straight back
       adopt(payload);
+      markExample(null);
       message(dom.messages, 'Served from cache, so no folding was needed.');
       return;
     }
@@ -213,6 +223,7 @@ async function poll(jobId, submitted) {
       const payload = await result.json();
       if (!result.ok) throw new Error(payload.error || 'The result went missing.');
       adopt(payload);
+      markExample(null);
       return;
     }
   }
@@ -228,6 +239,7 @@ function adopt(payload) {
 
   // Only things that happened to the user's own input get a warning box.
   // How the result was computed lives in the info panel.
+  state.proteinNotes = [...(payload.notes || [])];
   for (const note of payload.notes || []) message(dom.messages, note, 'warn');
   if (payload.stats?.mean_plddt < 60) {
     message(dom.messages,
@@ -329,9 +341,29 @@ function setMode(key, { force = false } = {}) {
   // does: the logo is drawn in 3D like everything else, and the flat one is an
   // output format rather than the way you look at it. A 231-column alignment as
   // a static image is six stacked rows of two-millimetre letters.
-  // The WebLogo credit shows on the tab that uses it and nowhere else.
+  // The WebLogo credit shows on the mode that uses it and nowhere else.
   if (dom.cite) dom.cite.hidden = key !== 'hogwash';
   hideDock();
+
+  // Each mode owns the camera and the message area, and leaving one for another
+  // has to hand both over. Coming back from Logo used to keep the framing the
+  // ALIGNMENT had asked for -- a 20-column DNA logo is framed from about 25
+  // Angstroms -- so the protein reappeared at that distance as a scatter of
+  // enormous letters. And the alignment's own note ("Alphabet detected as dna")
+  // stayed on screen above a protein it had nothing to do with.
+  clearMessages(dom.messages);
+  const notes = key === 'hogwash'
+    ? (state.alignmentNotes || []) : (state.proteinNotes || []);
+  for (const note of notes) message(dom.messages, note, 'warn');
+
+  if (key !== 'hogwash' && state.data) {
+    const points = state.data.residues.map((r) => new THREE.Vector3().fromArray(r.ca));
+    state.renderer.frameStructure(points);
+    state.renderer.setBackbone(points, { opacity: state.shared.backboneOpacity });
+    // Restore a floor proportional to the structure; HOGWASH lowers it to 6 so
+    // a single logo column can be reached, which is far too close for a fold.
+    state.renderer.setZoomFloor(state.renderer.control.defaultDistance * 0.35);
+  }
 
   buildModeControls();
   buildSharedControls();
@@ -704,6 +736,8 @@ function buildHogwashControls(host, options, refresh) {
     button.className = 'button';
     button.textContent = meta.label;
     button.title = meta.note;
+    button.dataset.alignment = key;
+    button.classList.toggle('active', state.mode.example === key);
     button.addEventListener('click', () => {
       box.value = '';
       loadAlignment({ example: key }, meta.label);
@@ -1005,9 +1039,12 @@ async function loadAlignment(body, sourceLabel) {
     mode.alignment = body.alignment ?? null;
     mode.example = body.example ?? null;
     mode.source = sourceLabel;
-    for (const note of payload.alignment?.notes || []) {
-      message(dom.messages, note, 'warn');
+    // Light the alignment that is on screen, and only that one.
+    for (const button of document.querySelectorAll('[data-alignment]')) {
+      button.classList.toggle('active', button.dataset.alignment === mode.example);
     }
+    state.alignmentNotes = [...(payload.alignment?.notes || [])];
+    for (const note of state.alignmentNotes) message(dom.messages, note, 'warn');
     rebuild();
   } catch (error) {
     message(dom.messages, `<b>${error.message}</b>`, 'error');

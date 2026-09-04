@@ -25,7 +25,10 @@ export const DEFAULTS = {
   spacing: 1.5,           // Angstroms between positions in the flat strip
   staggerPerResidue: 0.0035,  // fraction of the timeline per residue index
   duration: 4.2,          // seconds for one play-through
-  loop: true,
+  // Off by default. A logo that folds itself once and then holds the finished
+  // structure is a demonstration; one that restarts every four seconds is a
+  // screensaver you have to fight to read. The toggle is still there.
+  loop: false,
   scheme: 'chemistry',
   globalScale: 1.0,
   letterWidth: 1.15,
