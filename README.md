@@ -37,17 +37,17 @@
 
 **Why it matters:** a conventional sequence logo tells you which positions are conserved, but it does so on a flat strip that has been divorced from the structure, and it gets there through a multiple sequence alignment, inheriting every bias in the search-align-trim pipeline that produced it. ALPHABETTI has **no alignment anywhere**: it asks ESM-2 what it expects at each position, having first masked that position so the model cannot read the answer off its own input, and then wraps the answer onto the fold. Conserved buried core positions become tall single-letter towers, tolerant surface positions splay into short scruffy stacks, and helices read as spiral staircases of text. It is useful for: seeing at a glance which parts of a fold a model considers load-bearing, spotting exposed hydrophobic patches that drive aggregation or block crystallisation, finding positions where the wild-type residue is one the model would not have chosen, and producing something that people will actually share.
 
-## 🧪 What the four tabs do
+## 🧪 One view, five modes
 
-All four are computed once, shipped in one payload, and switch instantly with no further network round trip.
+There are no tabs. The structure, the camera and the sequence ruler are shared, and the mode buttons on the canvas change only what the glyphs mean. Everything is computed once, shipped in one payload, and switches instantly with no further network round trip.
 
-| Tab | Backronym | Glyph geometry is driven by |
+| Mode | Name | Glyph geometry is driven by |
 |---|---|---|
-| **GIBBERISH** | Glyph Interface for Bits, Entropy and Residue Information in Structural Homology | ESM-2 per-position probabilities, heights in bits of information content |
-| **BUMFLUFF** | Buried/Unburied Mapping of Fonts, Letters, Uncovered Faces and Folds | Relative solvent accessible surface area |
-| **BALDERDASH** | Bayesian Amino-acid Letter Display of Estimated Residue Deviations And Substitution Hotspots | Variant effect scores, ghost glyphs, ClinVar/gnomAD overlay |
-| **FOLDEROL** | Folding Of Letters Displayed En Route, Ordered Linearly | An animated morph from a flat 2D logo strip into the 3D coordinates |
-| **HOGWASH** | Height-Ordered Glyphs Weighted Across Sequence Homologues | A real [WebLogo](https://github.com/gecrooks/weblogo) from a real alignment: the one tab that uses one |
+| **Information** | GIBBERISH | Glyph Interface for Bits, Entropy and Residue Information in Structural Homology | ESM-2 per-position probabilities, heights in bits of information content |
+| **Solvent** | BUMFLUFF | Buried/Unburied Mapping of Fonts, Letters, Uncovered Faces and Folds | Relative solvent accessible surface area |
+| **Hotspots** | BALDERDASH | Bayesian Amino-acid Letter Display of Estimated Residue Deviations And Substitution Hotspots | Variant effect scores, ghost glyphs, ClinVar/gnomAD overlay |
+| **Fold** | FOLDEROL | Folding Of Letters Displayed En Route, Ordered Linearly | An animated morph from a flat 2D logo strip into the 3D coordinates |
+| **Logo** | HOGWASH | Height-Ordered Glyphs Weighted Across Sequence Homologues | A real [WebLogo](https://github.com/gecrooks/weblogo) from a real alignment: the one tab that uses one |
 
 ![BUMFLUFF mode: one letter per residue, height driven by relative solvent accessibility, coloured from deep blue for buried to amber for exposed, with exposed hydrophobic residues flagged in orange](docs/screenshots/bumfluff.png)
 

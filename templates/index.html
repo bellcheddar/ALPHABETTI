@@ -32,18 +32,6 @@
         <b>T</b>hree-dimensions and <b>I</b>nteractive
       </p>
     </div>
-    <!-- The tabs carry the plain descriptor, not the acronym. GIBBERISH,
-         BUMFLUFF and the rest are good names and poor labels: a strip of five
-         invented words tells a first-time visitor nothing about what any of
-         them does. The names are still spelled out in the corner of the canvas
-         for whichever tab is active. -->
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="gibberish" aria-selected="true">information content</button>
-      <button class="tab" role="tab" data-tab="bumfluff" aria-selected="false">solvent accessibility</button>
-      <button class="tab" role="tab" data-tab="balderdash" aria-selected="false">variant hotspots</button>
-      <button class="tab" role="tab" data-tab="folderol" aria-selected="false">flat logo to fold</button>
-      <button class="tab" role="tab" data-tab="hogwash" aria-selected="false">alignment logo</button>
-    </div>
   </div>
 </div>
 
@@ -78,9 +66,21 @@
            the bottom of the scrolling side panel, below the fold, which is no
            use when a stray scroll has just paused the rotation. -->
       <div class="viewport-controls">
-        <button class="vc" data-rotate-toggle aria-pressed="true"
-                title="Auto-rotate (R)">&#10227;<span>rotating</span></button>
-        <button class="vc" data-reset-view title="Reset the view (0)">&#8982;<span>reset</span></button>
+        <!-- One view, five modes. These were a tab strip above the canvas,
+             which read as five separate pages of an app rather than five ways
+             of looking at one thing. -->
+        <div class="mode-row" role="tablist" aria-label="Mode">
+          <button class="mode" role="tab" data-tab="gibberish" aria-selected="true">Information</button>
+          <button class="mode" role="tab" data-tab="bumfluff" aria-selected="false">Solvent</button>
+          <button class="mode" role="tab" data-tab="balderdash" aria-selected="false">Hotspots</button>
+          <button class="mode" role="tab" data-tab="folderol" aria-selected="false">Fold</button>
+          <button class="mode" role="tab" data-tab="hogwash" aria-selected="false">Logo</button>
+        </div>
+        <div class="view-row">
+          <button class="vc" data-rotate-toggle aria-pressed="true"
+                  title="Auto-rotate (R)">&#10227;<span>rotating</span></button>
+          <button class="vc" data-reset-view title="Reset the view (0)">&#8982;<span>reset</span></button>
+        </div>
       </div>
       <div class="tooltip" data-tooltip></div>
       <div class="loading" data-loading hidden>
