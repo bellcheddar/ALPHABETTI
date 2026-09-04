@@ -625,22 +625,13 @@ table.data tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
 /* ==========================================================================
    Viewport overlays.
 
-   The backronym for the ACTIVE tab sits in the top-right corner of the canvas
-   rather than under all four tabs at once, which made the tab strip 90px tall
-   and put three-quarters of the text where it was not being read.
+   The backronym used to be shown here for the active mode. It has gone: with
+   the modes named by what they do, a second line of invented words explaining
+   a name nothing on screen uses was decoration competing with the legend.
    ========================================================================== */
-
-.overlay-expand {
-  right: 14px; top: 12px; max-width: 33ch; text-align: right;
-  font-size: 9.5px; line-height: 1.55; color: var(--ne-fg-faint);
-  text-transform: none;   /* the capitals ARE the acronym; never uppercase this */
-}
-.overlay-expand b { font-size: 10.5px; }
 
 .legend-models { margin-top: 4px; color: var(--ne-fg-faint); }
 .legend-models .no-msa { color: var(--ne-cyan); text-shadow: 0 0 9px var(--ne-cyan-glow); }
-
-@media (max-width: 900px) { .overlay-expand { display: none; } }
 
 /* ==========================================================================
    The docked residue card.

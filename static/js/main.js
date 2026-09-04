@@ -70,8 +70,9 @@ async function boot() {
 
   state.renderer.onHover = (index, at) => {
     state.ruler.highlight(index);
-    if (index === null) return dom.tooltip.hide();
-    dom.tooltip.show(state.mode.tooltip(state.data.residues[index]), at);
+    const record = recordAt(index);
+    if (record === null) return dom.tooltip.hide();
+    dom.tooltip.show(state.mode.tooltip(record), at);
   };
   state.renderer.onPick = (index) => flyToResidue(index);
   state.renderer.onAutoRotateChange((on) => {
@@ -126,7 +127,7 @@ function cache(target) {
   target.rotateButton = document.querySelector('[data-rotate-toggle]');
   target.cite = document.querySelector('[data-cite]');
   target.models = document.querySelector('[data-models]');
-  target.expand = document.querySelector('[data-expand]');
+  target.proteinInput = document.querySelector('[data-protein-input]');
   target.dock = document.querySelector('[data-residue-dock]');
   target.dockBody = document.querySelector('[data-dock-body]');
   target.dockClose = document.querySelector('[data-dock-close]');
@@ -329,14 +330,9 @@ function setMode(key, { force = false } = {}) {
   for (const tab of dom.tabs) {
     tab.setAttribute('aria-selected', String(tab.dataset.tab === key));
   }
-  if (dom.expand) {
-    dom.expand.innerHTML = MODES[key].expand;
-    // Restart the ignition sweep so the new backronym lights up on arrival
-    // rather than joining the previous one's cycle midway through.
-    dom.expand.style.animation = 'none';
-    void dom.expand.offsetWidth;
-    dom.expand.style.animation = '';
-  }
+  // The protein picker is meaningless in Logo mode: it works on an alignment
+  // and never touches a structure.
+  if (dom.proteinInput) dom.proteinInput.hidden = key === 'hogwash';
   // HOGWASH used to cover the canvas with a flat WebLogo PNG. It no longer
   // does: the logo is drawn in 3D like everything else, and the flat one is an
   // output format rather than the way you look at it. A 231-column alignment as
@@ -723,8 +719,13 @@ function buildHogwashControls(host, options, refresh) {
 
   const family = document.createElement('button');
   family.className = 'button';
-  family.textContent = 'Fetch family';
-  family.title = 'Fetch this protein\u2019s Pfam seed alignment from InterPro';
+  // Name the protein it will use. With the protein picker hidden in this mode,
+  // "Fetch family" on its own does not say whose family.
+  const accession = state.data?.source?.accession;
+  family.textContent = accession ? `Fetch ${accession} family` : 'Fetch family';
+  family.title = accession
+    ? `Fetch the Pfam seed alignment for ${accession} from InterPro`
+    : 'Load a protein in another mode first, then fetch its Pfam alignment';
   family.addEventListener('click', () => fetchFamilyAlignment(box));
   row.appendChild(family);
   host.appendChild(row);
@@ -1012,6 +1013,27 @@ function exportName() {
   return `alphabetti_${base}_${state.modeKey}`;
 }
 
+/**
+ * The record the active mode's tooltip and dock expect, for a glyph index.
+ *
+ * The index a raycast returns means whatever the mode that drew the glyph says
+ * it means, and the two are not the same thing: the structural modes index the
+ * PROTEIN'S residues, Logo mode indexes the ALIGNMENT'S columns. Reading
+ * `state.data.residues[index]` regardless crashed on every hover in Logo mode
+ * the moment the alignment was longer than the loaded protein -- 231 columns
+ * against ubiquitin's 76 residues -- because index 190 simply is not there.
+ */
+function recordAt(index) {
+  if (index === null || index === undefined) return null;
+  if (state.modeKey === 'hogwash') {
+    const column = state.mode.data?.columns?.[index];
+    return column
+      ? { i: index, resnum: column.number, aa: column.stack[0]?.aa || '-' }
+      : null;
+  }
+  return state.data?.residues?.[index] ?? null;
+}
+
 /* --------------------------------------------------------------- HOGWASH */
 
 /**
@@ -1126,8 +1148,8 @@ function flyToResidue(index) {
     });
     return;
   }
-  const residue = state.data?.residues[index];
-  if (!residue) return;
+  const residue = recordAt(index);
+  if (!residue?.ca) return;
   const at = new THREE.Vector3().fromArray(residue.ca);
   state.renderer.focusResidue(at);
   state.renderer.setFocusMarker(at);
@@ -1183,8 +1205,11 @@ function fatal(error) {
   document.querySelector('[data-loading]')?.setAttribute('hidden', '');
   const host = document.querySelector('[data-messages]');
   if (!host) return;
+  // Not necessarily start-up: this handler catches everything, and saying
+  // "while starting up" about an error raised by a hover sends anyone
+  // debugging it to the wrong place.
   message(host,
-    `<b>Something broke while starting up.</b> ${error?.message || error}. `
+    `<b>Something went wrong.</b> ${error?.message || error}. `
     + 'This is a bug rather than anything you did. The details are in the '
     + 'browser console.', 'error');
 }

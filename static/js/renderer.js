@@ -53,6 +53,14 @@ export class Renderer {
     this.scene.add(this.subject);
 
     this.control = new StageCamera(90);
+    // Three seconds, not StageCamera's eight.
+    //
+    // Set here rather than in StageCamera.js so that file stays byte-identical
+    // to ButtFold's and PhoneFold's. Their eight seconds is the right number
+    // for a single object you pose and study; this app has five modes that each
+    // reframe, and waiting eight seconds for the stage to come back to life
+    // after every switch reads as a stall rather than as deference.
+    this.control.resumeDelay = 3.0;
     // The explicit toggle. StageCamera resumes its own orbit after a delay;
     // this is the only thing that stops it for good.
     this._rotateOff = false;

@@ -169,7 +169,12 @@ export class Folderol {
         else { this.progress = 1; this.playing = false; }
       }
     }
-    this.pose();
+    // Drive the camera only while there is a fold in progress. Once it has
+    // landed, hand the camera back: this used to keep writing the folded pose
+    // every frame forever, which pinned the attitude and made Fold the one mode
+    // that never resumed its idle rotation. Scrubbing back below 1 takes it
+    // over again.
+    if (this.playing || this.progress < 1) this.pose();
     return this.playing;
   }
 

@@ -38,8 +38,6 @@
 <main class="app-main">
   <div class="stage">
     <div class="viewport" data-viewport>
-      <!-- (2) The active tab's backronym, in the corner it describes. -->
-      <div class="overlay overlay-expand ignite" data-expand></div>
       <div class="overlay overlay-legend">
         <div data-legend></div>
         <div class="legend-models" data-models>{{ models.structure.name }} · {{ models.language.name }}
@@ -92,20 +90,26 @@
 
     <aside class="panel">
       <div class="panel-section">
-        <div class="label"><span>Sequence or UniProt accession</span></div>
-        <textarea data-input rows="3"
-          placeholder="Paste a sequence, FASTA, or an accession such as P0CG48 or UBC_HUMAN"
-          aria-label="Protein sequence or UniProt accession"></textarea>
-        <div class="button-row">
-          <button class="button primary" data-submit
-            {% if not can_fold %}disabled title="Folding is switched off on this instance"{% endif %}>
-            Fold it</button>
+        <!-- Everything about choosing a PROTEIN. Hidden in Logo mode, which
+             works on an alignment and does nothing with a structure, so the
+             box and the four buttons sat there doing nothing. -->
+        <div data-protein-input>
+          <div class="label"><span>Sequence or UniProt accession</span></div>
+          <textarea data-input rows="3"
+            placeholder="Paste a sequence, FASTA, or an accession such as P0CG48 or UBC_HUMAN"
+            aria-label="Protein sequence or UniProt accession"></textarea>
+          <div class="button-row">
+            <button class="button primary" data-submit
+              {% if not can_fold %}disabled title="Folding is switched off on this instance"{% endif %}>
+              Fold it</button>
+          </div>
+          <div class="button-row">
+            {% for key, meta in examples.items() %}
+            <button class="button" data-example="{{ key }}" title="{{ meta.note }}">{{ meta.label }}</button>
+            {% endfor %}
+          </div>
         </div>
-        <div class="button-row">
-          {% for key, meta in examples.items() %}
-          <button class="button" data-example="{{ key }}" title="{{ meta.note }}">{{ meta.label }}</button>
-          {% endfor %}
-        </div>
+        <!-- Messages stay: Logo mode has its own to show. -->
         <div data-messages></div>
       </div>
 
