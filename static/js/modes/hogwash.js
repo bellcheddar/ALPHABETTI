@@ -61,7 +61,11 @@ export const DEFAULTS = {
   ignore_lower_case: false,
 
   // ---- the 3D arrangement
-  layout: 'helix',
+  // Rows on arrival: the shape a reader already knows, wrapped the way WebLogo
+  // wraps past 40 stacks. The helix and the ring are the interesting views and
+  // are one click away, but landing on a spiral asks someone to learn the
+  // display before they can read the data.
+  layout: 'rows',
   // How many times the coil goes round, and how far it climbs per turn. Rise
   // has to clear the tallest stack or consecutive turns grow through each other.
   helixTurns: 3,
@@ -280,7 +284,10 @@ export class Hogwash {
       const rows = Math.ceil(columns / perRow);
       const width = perRow * columnSpacing;
       const height = rows === 1 ? tall : (rows - 1) * 14 + tall;
-      return 1.08 * Math.max(
+      // 1.2 rather than a snug 1.08: the mode buttons and the view controls sit
+      // over the top-left of the canvas, and a tight fit ran the first row of a
+      // wrapped logo underneath them.
+      return 1.2 * Math.max(
         (width / 2) / Math.tan(horizontal / 2),
         (height / 2) / Math.tan(vertical / 2),
       );

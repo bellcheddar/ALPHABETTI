@@ -333,6 +333,21 @@ function setMode(key, { force = false } = {}) {
   // The protein picker is meaningless in Logo mode: it works on an alignment
   // and never touches a structure.
   if (dom.proteinInput) dom.proteinInput.hidden = key === 'hogwash';
+
+  // Logo mode does not turn on its own, in any layout.
+  //
+  // A logo is text and text is for reading. A structure drifting slowly is
+  // pleasant because you are looking at a shape; a wall of letters drifting
+  // slowly is a wall of letters you keep having to catch up with. Dragging
+  // still works, and the rotate button still turns it on for anyone who wants
+  // the spin -- it simply is not the default here.
+  //
+  // `state.userRotate` is the visitor's own choice, set only by that button, so
+  // leaving Logo restores what they had rather than what Logo imposed.
+  const spins = key !== 'hogwash' && state.userRotate !== false;
+  state.renderer.setAutoRotate(spins, state.shared.rotateSpeed);
+  state.shared.autoRotate = spins;
+  dom.autoRotateToggle?.set(spins);
   // HOGWASH used to cover the canvas with a flat WebLogo PNG. It no longer
   // does: the logo is drawn in 3D like everything else, and the flat one is an
   // output format rather than the way you look at it. A 231-column alignment as
@@ -477,6 +492,7 @@ function wireInputs() {
   }
   dom.rotateButton?.addEventListener('click', () => {
     const on = state.renderer._rotateOff;   // currently off -> turn it on
+    state.userRotate = on;                  // their choice, remembered
     state.renderer.setAutoRotate(on, state.shared.rotateSpeed);
     state.shared.autoRotate = on;
     dom.autoRotateToggle?.set(on);
@@ -540,6 +556,7 @@ function buildSharedControls() {
     label: 'Auto-rotate', checked: state.shared.autoRotate,
     onChange: (on) => {
       state.shared.autoRotate = on;
+      state.userRotate = on;
       state.renderer.setAutoRotate(on, state.shared.rotateSpeed);
     },
   });
