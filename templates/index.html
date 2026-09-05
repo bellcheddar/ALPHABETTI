@@ -80,9 +80,29 @@
           <button class="vc" data-reset-view title="Reset the view (0)">&#8982;<span>reset</span></button>
           <button class="vc" data-style-toggle aria-pressed="false"
                   title="Flat cartoon rendering, no specular glints (M)">&#9634;<span>neon</span></button>
+          <button class="vc" data-box-toggle aria-pressed="false" hidden
+                  title="Drag a box to zoom into it (or hold shift)">&#9744;<span>zoom box</span></button>
+          <button class="vc" data-publication aria-pressed="false" hidden
+                  title="The real WebLogo figure (P)">&#128196;<span>publication</span></button>
         </div>
       </div>
       <div class="tooltip" data-tooltip></div>
+      <div class="rubber-band" data-band hidden></div>
+
+      <!-- The real WebLogo, on demand. It is not the default view -- a 231
+           column alignment as a static image is six rows of tiny letters --
+           but it is the publication figure, so it is one button away. -->
+      <div class="logo-sheet" data-sheet hidden>
+        <div class="sheet-scroll">
+          <img class="sheet-img" data-sheet-img alt="">
+        </div>
+        <div class="sheet-credit">
+          Rendered by <a href="https://github.com/gecrooks/weblogo"
+            target="_blank" rel="noopener noreferrer">WebLogo 3</a>, unmodified.
+          This is the figure, exactly as the command line would draw it.
+          Download it as PDF, EPS or SVG from the panel.
+        </div>
+      </div>
       <div class="loading" data-loading hidden>
         <div class="loading-stage" data-loading-stage>starting</div>
         <div class="loading-bar"></div>

@@ -53,6 +53,10 @@ export class Renderer {
     this.scene.add(this.subject);
 
     this.control = new StageCamera(90);
+    // 'orbit' turns the subject; 'pan' slides it in the camera plane and never
+    // rotates it. A logo is a sheet of text: turning it is not a way of reading
+    // it, and every degree away from square-on costs legibility.
+    this._navigation = 'orbit';
     // Three seconds, not StageCamera's eight.
     //
     // Set here rather than in StageCamera.js so that file stays byte-identical
@@ -115,6 +119,9 @@ export class Renderer {
 
     element.addEventListener('pointerdown', (event) => {
       element.setPointerCapture(event.pointerId);
+      if (this._navigation === 'pan' && (event.shiftKey || this._boxArmed)) {
+        this._startBox(event);
+      }
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       lastX = event.clientX; lastY = event.clientY;
 
@@ -144,6 +151,13 @@ export class Renderer {
       if (!pointers.has(event.pointerId)) return;
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
+      if (this._navigation === 'pan' && pointers.size < 2) {
+        if (event.shiftKey || this._boxing) { this._trackBox(event); return; }
+        this._pan(event.clientX - lastX, event.clientY - lastY);
+        lastX = event.clientX; lastY = event.clientY;
+        return;
+      }
+
       if (pointers.size >= 2) {
         // Pinch: the distance between the first two contacts against its value
         // at the start of the gesture.
@@ -159,6 +173,7 @@ export class Renderer {
     });
 
     const release = (event) => {
+      if (this._boxing) this._finishBox(event);
       pointers.delete(event.pointerId);
       if (pointers.size < 2) this._pinchStart = null;
       if (pointers.size === 0) {
@@ -509,6 +524,88 @@ export class Renderer {
    */
   setZoomFloor(distance) {
     this.control.minimumDistance = Math.max(2, distance);
+  }
+
+  /** Slide the subject in the camera's own plane. No rotation, ever. */
+  _pan(deltaX, deltaY) {
+    const height = this.webgl.domElement.clientHeight || 1;
+    // One screen pixel in world units at the current distance, so the sheet
+    // tracks the pointer exactly rather than at some arbitrary sensitivity.
+    const perPixel = (2 * this.control.distance
+      * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2)) / height;
+    this.centring.position.x += deltaX * perPixel;
+    this.centring.position.y -= deltaY * perPixel;
+    this.control.interacting = true;
+    this.control.idleTime = 0;
+  }
+
+  /** Arm the rubber band without needing the shift key. */
+  setBoxArmed(armed) { this._boxArmed = armed; }
+
+  setNavigation(mode) {
+    this._navigation = mode;
+    this.webgl.domElement.style.cursor = mode === 'pan' ? 'grab' : '';
+  }
+
+  _startBox(event) {
+    const rect = this.webgl.domElement.getBoundingClientRect();
+    this._boxing = { x0: event.clientX - rect.left, y0: event.clientY - rect.top,
+                     x1: event.clientX - rect.left, y1: event.clientY - rect.top };
+    this.onBox?.(this._boxing);
+  }
+
+  _trackBox(event) {
+    if (!this._boxing) return;
+    const rect = this.webgl.domElement.getBoundingClientRect();
+    this._boxing.x1 = event.clientX - rect.left;
+    this._boxing.y1 = event.clientY - rect.top;
+    this.onBox?.(this._boxing);
+  }
+
+  /**
+   * Zoom to the dragged rectangle.
+   *
+   * The subject is square to the camera and the camera looks at the origin, so
+   * the mapping is a straight one: the visible extent at the current distance
+   * is 2*d*tan(fov/2) tall and that times the aspect wide, which turns a
+   * rectangle in pixels into one in Angstroms without any projection maths.
+   */
+  _finishBox(event) {
+    const box = this._boxing;
+    this._boxing = null;
+    this.onBox?.(null);
+    if (!box) return;
+
+    const element = this.webgl.domElement;
+    const width = element.clientWidth || 1;
+    const height = element.clientHeight || 1;
+    const pixels = Math.abs(box.x1 - box.x0) + Math.abs(box.y1 - box.y0);
+    // A stray click is not a selection. Below this it was a click, and zooming
+    // to a two-pixel box would throw the camera inside the letters.
+    if (pixels < 24) return;
+
+    const visibleHeight = 2 * this.control.distance
+      * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2);
+    const visibleWidth = visibleHeight * (width / height);
+
+    const centreX = ((box.x0 + box.x1) / 2 / width - 0.5) * visibleWidth;
+    const centreY = -((box.y0 + box.y1) / 2 / height - 0.5) * visibleHeight;
+    const boxWidth = Math.abs(box.x1 - box.x0) / width * visibleWidth;
+    const boxHeight = Math.abs(box.y1 - box.y0) / height * visibleHeight;
+
+    // Where that rectangle sits in the subject's own frame.
+    const target = new THREE.Vector3(
+      -this.centring.position.x + centreX,
+      -this.centring.position.y + centreY,
+      0,
+    );
+    const vertical = THREE.MathUtils.degToRad(this.camera.fov);
+    const horizontal = 2 * Math.atan(Math.tan(vertical / 2) * (width / height));
+    const distance = 1.06 * Math.max(
+      (boxHeight / 2) / Math.tan(vertical / 2),
+      (boxWidth / 2) / Math.tan(horizontal / 2),
+    );
+    this.centreOn(target, { distance: Math.max(distance, 4) });
   }
 
   /**

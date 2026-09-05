@@ -134,6 +134,11 @@ function cache(target) {
   target.dockClose = document.querySelector('[data-dock-close]');
   target.resetButton = document.querySelector('[data-reset-view]');
   target.styleButton = document.querySelector('[data-style-toggle]');
+  target.boxButton = document.querySelector('[data-box-toggle]');
+  target.pubButton = document.querySelector('[data-publication]');
+  target.band = document.querySelector('[data-band]');
+  target.sheet = document.querySelector('[data-sheet]');
+  target.sheetImg = document.querySelector('[data-sheet-img]');
 }
 
 /* ------------------------------------------------------------------- data */
@@ -336,6 +341,15 @@ function setMode(key, { force = false } = {}) {
   // and never touches a structure.
   if (dom.proteinInput) dom.proteinInput.hidden = key === 'hogwash';
 
+  // Logo mode is navigated, not orbited: drag slides the sheet in x and y and
+  // never turns it, shift-drag (or the zoom-box button) rubber-bands a region.
+  const flat = key === 'hogwash';
+  state.renderer.setNavigation(flat ? 'pan' : 'orbit');
+  for (const button of [dom.boxButton, dom.pubButton]) {
+    if (button) button.hidden = !flat;
+  }
+  if (!flat) closePublication();
+
   // Logo mode does not turn on its own, in any layout.
   //
   // A logo is text and text is for reading. A structure drifting slowly is
@@ -523,6 +537,27 @@ function wireInputs() {
   });
   dom.dockClose?.addEventListener('click', hideDock);
 
+  // The rubber band, drawn in the DOM over the canvas.
+  state.renderer.onBox = (box) => {
+    if (!dom.band) return;
+    if (!box) { dom.band.hidden = true; return; }
+    const left = Math.min(box.x0, box.x1);
+    const top = Math.min(box.y0, box.y1);
+    dom.band.style.left = `${left}px`;
+    dom.band.style.top = `${top}px`;
+    dom.band.style.width = `${Math.abs(box.x1 - box.x0)}px`;
+    dom.band.style.height = `${Math.abs(box.y1 - box.y0)}px`;
+    dom.band.hidden = false;
+  };
+
+  dom.boxButton?.addEventListener('click', () => {
+    const armed = dom.boxButton.getAttribute('aria-pressed') !== 'true';
+    dom.boxButton.setAttribute('aria-pressed', String(armed));
+    state.renderer.setBoxArmed(armed);
+  });
+
+  dom.pubButton?.addEventListener('click', () => togglePublication());
+
   dom.styleButton?.addEventListener('click', () => {
     state.renderStyle = state.renderStyle === 'matte' ? 'neon' : 'matte';
     applyRenderStyle();
@@ -535,6 +570,9 @@ function wireInputs() {
     if (event.key === '0') { state.renderer.resetCamera(); hideDock(); }
     if (event.key === 'Escape') hideDock();
     if (event.key === 'm' || event.key === 'M') dom.styleButton?.click();
+    if ((event.key === 'p' || event.key === 'P') && state.modeKey === 'hogwash') {
+      togglePublication();
+    }
   });
 
   buildSharedControls();
@@ -1135,6 +1173,60 @@ function logoRequest() {
       ...(o.yaxis_scale ? { yaxis_scale: o.yaxis_scale } : {}),
     },
   };
+}
+
+/**
+ * The real WebLogo figure, over the canvas, on demand.
+ *
+ * Deliberately not the default view: a 231-column alignment as a static image
+ * is six stacked rows of two-millimetre letters, which is why the 3D view
+ * exists. But it IS the publication figure, drawn by WebLogo itself with no
+ * interpretation from this app, so it is one button away and it says so.
+ */
+async function togglePublication() {
+  if (!dom.sheet) return;
+  if (!dom.sheet.hidden) return closePublication();
+  const mode = state.mode;
+  if (!mode?.data) {
+    message(dom.messages, '<b>No alignment loaded yet.</b>', 'warn');
+    return;
+  }
+  if (!state.logoFormats?.png) {
+    message(dom.messages,
+      '<b>This server cannot rasterise.</b> Ghostscript is not installed, so '
+      + 'there is no PNG to show. The EPS and CSV downloads still work.', 'warn');
+    return;
+  }
+  dom.loading.show('asking WebLogo to draw it');
+  try {
+    const response = await fetch('/api/logo/render.png', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alignment: mode.alignment, example: mode.example,
+                             ...logoRequest() }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'WebLogo could not draw that.');
+    }
+    const blob = await response.blob();
+    if (state.pubUrl) URL.revokeObjectURL(state.pubUrl);
+    state.pubUrl = URL.createObjectURL(blob);
+    dom.sheetImg.src = state.pubUrl;
+    dom.sheetImg.alt = `WebLogo of ${mode.source || 'the alignment'}, `
+      + `${mode.data.alignment.sequences} sequences over `
+      + `${mode.data.alignment.columns} columns`;
+    dom.sheet.hidden = false;
+    dom.pubButton?.setAttribute('aria-pressed', 'true');
+  } catch (error) {
+    message(dom.messages, `<b>${error.message}</b>`, 'error');
+  } finally {
+    dom.loading.hide();
+  }
+}
+
+function closePublication() {
+  if (dom.sheet) dom.sheet.hidden = true;
+  dom.pubButton?.setAttribute('aria-pressed', 'false');
 }
 
 async function downloadLogo(format) {
